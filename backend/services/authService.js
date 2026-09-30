@@ -4,6 +4,7 @@ import { getConfig } from "../config/env.js";
 import { User } from "../models/index.js";
 import { AppError, conflict } from "../utils/errors.js";
 import { randomToken, sha256 } from "../utils/text.js";
+import { logger } from "../utils/logger.js";
 import { audit } from "./auditService.js";
 
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -39,13 +40,26 @@ export const refreshCookieOptions = () => {
 const issueTokens = (user, version) => ({ accessToken: signAccess(user), refreshToken: signRefresh(user, version) });
 
 export function createAuthService({ emailService }) {
+  /**
+   * Delivery is best-effort: the account/token change has already been committed, so an SMTP outage must not turn a
+   * successful registration into a 500 (and must not reveal whether an address exists on forgot-password). Failures are
+   * logged; users can request another email via "resend".
+   */
+  const deliver = async (what, send) => {
+    try {
+      await send();
+    } catch (err) {
+      logger.error(`${what} email failed to send`, { err });
+    }
+  };
+
   const startEmailVerification = async (user) => {
     const token = randomToken();
     await User.updateOne(
       { _id: user._id },
       { $set: { emailVerificationTokenHash: sha256(token), emailVerificationExpiresAt: new Date(Date.now() + VERIFY_TTL_MS) } }
     );
-    await emailService.sendVerification(user, token);
+    await deliver("verification", () => emailService.sendVerification(user, token));
   };
 
   return {
@@ -134,7 +148,7 @@ export function createAuthService({ emailService }) {
         { _id: user._id },
         { $set: { passwordResetTokenHash: sha256(token), passwordResetExpiresAt: new Date(Date.now() + RESET_TTL_MS) } }
       );
-      await emailService.sendPasswordReset(user, token);
+      await deliver("password reset", () => emailService.sendPasswordReset(user, token));
     },
 
     /** Single-use: the token is consumed in the same atomic update that sets the new password. */

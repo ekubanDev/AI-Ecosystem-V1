@@ -109,7 +109,7 @@ docker/docker-compose.yml   MongoDB + API
 
 ## Not included / known limitations
 
-* **Email delivery**: only a logging transport ships; plug a provider into `createEmailService({ transport })`. No provider was named in the specs.
+* **Email delivery**: set `GMAIL_USER` + `GMAIL_APP_PASSWORD` (a Google *App Password*, not the account password) to send verification/reset mail through Gmail SMTP; leave them empty to log the links instead. Sending is best-effort: a provider outage never fails registration or reveals whether an address exists (users can use "resend"). The Gmail transport is tested with a fake mailer only — **it has not been run against Gmail**. Only SMTP is implemented; other providers plug in via `createEmailService({ transport })`.
 * **Search adapters** (Tavily, Brave) follow the public API docs but were **not exercised against the live services**; the OpenAI provider likewise has not been run against the real API here. Tests inject fakes.
 * **Refresh tokens are single-session** (rotation increments a per-user version), so signing in on a second device signs out the first.
 * Audit events are readable through the API and UI but never editable or deletable (append-only at the model level). Audit writes are best-effort (standalone MongoDB has no cross-collection transactions); failures are logged.
