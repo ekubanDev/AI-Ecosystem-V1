@@ -1,4 +1,4 @@
-import { Analytics, Groups, Logout, Menu as MenuIcon, PlayCircle, Psychology, Science, Settings, Lightbulb } from "@mui/icons-material";
+import { Analytics, Groups, History, Logout, Menu as MenuIcon, PlayCircle, Psychology, Science, Settings, Lightbulb } from "@mui/icons-material";
 import { AppBar, Box, Button, Chip, Divider, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography } from "@mui/material";
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
@@ -17,6 +17,7 @@ export default function AppLayout() {
     { to: "/experiments", label: "Experiments", icon: <Science /> },
     { to: "/agents", label: "Agents", icon: <Psychology /> },
     ...(can("users:manage") ? [{ to: "/users", label: "Users", icon: <Groups /> }] : []),
+    ...(can("audit:read") ? [{ to: "/audit", label: "Audit log", icon: <History /> }] : []),
     { to: "/settings", label: "Settings", icon: <Settings /> },
   ];
 

@@ -63,6 +63,11 @@ export const agents = {
   runAgent: (agentType, body, key) => one(post(`/agents/${agentType}/run`, body, { headers: idempotencyHeaders(key) })),
 };
 
+export const audit = {
+  list: (params) => list("/audit", params),
+  facets: () => one(get("/audit/facets")),
+};
+
 export const users = {
   list: (params) => list("/users", params),
   update: (id, body) => one(patch(`/users/${id}`, body)),

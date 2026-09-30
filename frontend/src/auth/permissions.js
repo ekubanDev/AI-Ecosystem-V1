@@ -7,6 +7,7 @@ const CAPABILITIES = {
   "experiments:write": ["OWNER", "ADMIN", "ANALYST"],
   "experiments:approve": ["OWNER", "ADMIN"],
   "users:manage": ["OWNER", "ADMIN"],
+  "audit:read": ["OWNER", "ADMIN"],
 };
 
 export const can = (role, capability) => (CAPABILITIES[capability] ?? []).includes(role);

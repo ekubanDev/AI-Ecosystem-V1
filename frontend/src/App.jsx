@@ -5,6 +5,7 @@ import { Loading } from "./components/common.jsx";
 import AppLayout from "./layouts/AppLayout.jsx";
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, VerifyEmailPage } from "./pages/AuthPages.jsx";
 
+const AuditPage = lazy(() => import("./pages/AuditPage.jsx"));
 const AgentsPage = lazy(() => import("./pages/AgentsPage.jsx"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage.jsx"));
 const DiscoveryPage = lazy(() => import("./pages/DiscoveryPage.jsx"));
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="experiments" element={<ExperimentsPage />} />
         <Route path="agents" element={<AgentsPage />} />
         <Route path="users" element={<Protected capability="users:manage"><UsersPage /></Protected>} />
+        <Route path="audit" element={<Protected capability="audit:read"><AuditPage /></Protected>} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

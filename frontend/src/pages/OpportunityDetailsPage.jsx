@@ -5,16 +5,18 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link as RouterLink, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { agents as agentsApi, opportunities as api } from "../api/endpoints.js";
+import { agents as agentsApi, audit as auditApi, opportunities as api } from "../api/endpoints.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { RunDetailDialog, SourceLink, TaskRunsDialog, TaskTable } from "../components/agentViews.jsx";
 import { ConfidenceChip, EvidenceTypeChip, ExperimentStatusChip, OpportunityStatusChip } from "../components/chips.jsx";
 import { ActionDialog, Empty, ErrorAlert, Loading } from "../components/common.jsx";
 import { ExperimentDialog, ExperimentFormDialog } from "../components/experiments.jsx";
+import { describeActor, describeAuditEvent } from "../utils/audit.js";
 import { formatDate, formatMoney, humanize } from "../utils/format.js";
+import { AuditDetailDialog } from "./AuditPage.jsx";
 
-const TABS = ["overview", "evidence", "business-model", "competitors", "economics", "differentiation", "experiments", "agent-runs", "decision"];
-const TAB_LABEL = { overview: "Overview", evidence: "Evidence", "business-model": "Business model", competitors: "Competitors", economics: "Economics", differentiation: "Differentiation", experiments: "Experiments", "agent-runs": "Agent runs", decision: "Decision" };
+const TABS = ["overview", "evidence", "business-model", "competitors", "economics", "differentiation", "experiments", "agent-runs", "decision", "history"];
+const TAB_LABEL = { overview: "Overview", evidence: "Evidence", "business-model": "Business model", competitors: "Competitors", economics: "Economics", differentiation: "Differentiation", experiments: "Experiments", "agent-runs": "Agent runs", decision: "Decision", history: "History" };
 
 const KV = ({ label, children }) => (
   <Box><Typography variant="caption" sx={{ color: "text.secondary" }}>{label}</Typography><Typography variant="body2" component="div" sx={{ whiteSpace: "pre-wrap" }}>{children || "—"}</Typography></Box>
@@ -236,6 +238,31 @@ function AgentRunsTab({ o }) {
   );
 }
 
+function History({ o }) {
+  const [open, setOpen] = useState(null);
+  const q = useQuery({ queryKey: ["audit", "opportunity", o.id], queryFn: () => auditApi.list({ resourceType: "Opportunity", resourceId: o.id, order: "asc", limit: 100 }) });
+  if (q.isPending) return <Loading />;
+  if (q.error) return <ErrorAlert error={q.error} onRetry={q.refetch} />;
+  if (!q.data.items.length) return <Empty>No recorded events.</Empty>;
+  return (
+    <>
+      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>Who or what changed this opportunity, oldest first. Select an event for full detail.</Typography>
+      <Table size="small">
+        <TableHead><TableRow><TableCell>When</TableCell><TableCell>Actor</TableCell><TableCell>Event</TableCell><TableCell>Detail</TableCell></TableRow></TableHead>
+        <TableBody>
+          {q.data.items.map((e) => (
+            <TableRow key={e.id} hover sx={{ cursor: "pointer" }} onClick={() => setOpen(e)}>
+              <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(e.createdAt)}</TableCell><TableCell>{describeActor(e.actor)}</TableCell><TableCell>{humanize(e.action)}</TableCell><TableCell>{describeAuditEvent(e) || "—"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {q.data.pagination.hasNextPage && <Typography variant="caption" sx={{ color: "text.secondary" }}>Showing the first 100 events.</Typography>}
+      <AuditDetailDialog event={open} onClose={() => setOpen(null)} />
+    </>
+  );
+}
+
 const TERMINAL = ["REJECTED"];
 const ANALYZABLE = ["DISCOVERED", "RESEARCHING", "ANALYZING", "VALIDATED", "AWAITING_APPROVAL"];
 const PAUSABLE = ["DISCOVERED", "RESEARCHING", "ANALYZING", "VALIDATED", "AWAITING_APPROVAL", "APPROVED", "EXPERIMENT", "BUILDING", "LAUNCHED", "SCALING"];
@@ -275,7 +302,8 @@ export default function OpportunityDetailsPage() {
   const qc = useQueryClient();
   const { can } = useAuth();
   const [params, setParams] = useSearchParams();
-  const tab = TABS.includes(params.get("tab")) ? params.get("tab") : "overview";
+  const requested = params.get("tab");
+  const tab = TABS.includes(requested) && (requested !== "history" || can("audit:read")) ? requested : "overview";
 
   const q = useQuery({ queryKey: ["opportunity", id], queryFn: () => api.get(id), refetchInterval: (query) => (["RESEARCHING", "ANALYZING"].includes(query.state.data?.status) ? 4000 : false) });
   const refresh = () => {
@@ -312,7 +340,7 @@ export default function OpportunityDetailsPage() {
         <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={() => setTab("decision")}>Review &amp; decide</Button>}>Analysis is done and this opportunity is waiting for your decision.</Alert>
       )}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
-        {TABS.map((t) => <Tab key={t} value={t} label={TAB_LABEL[t]} />)}
+        {TABS.filter((t) => t !== "history" || can("audit:read")).map((t) => <Tab key={t} value={t} label={TAB_LABEL[t]} />)}
       </Tabs>
       {tab === "overview" && <Overview o={o} />}
       {tab === "evidence" && <Evidence o={o} />}
@@ -323,6 +351,7 @@ export default function OpportunityDetailsPage() {
       {tab === "experiments" && <ExperimentsTab o={o} />}
       {tab === "agent-runs" && <AgentRunsTab o={o} />}
       {tab === "decision" && <Decision o={o} act={act} />}
+      {tab === "history" && can("audit:read") && <History o={o} />}
     </>
   );
 }

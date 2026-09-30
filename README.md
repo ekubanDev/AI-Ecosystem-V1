@@ -42,7 +42,7 @@ npm test           # unit tests
 npm run build      # static files in frontend/dist
 ```
 
-Log in with the account you seeded. Pages: Overview, Opportunities (search/filter/sort, details with Evidence · Business model · Competitors · Economics · Differentiation · Experiments · Agent runs · Decision tabs), Discovery (run + live progress), Experiments, Agents (registry, runs, tasks with retry), Users (owner/admin), Settings. Buttons a role can't use are hidden; the server still enforces every rule.
+Log in with the account you seeded. Pages: Overview, Opportunities (search/filter/sort, details with Evidence · Business model · Competitors · Economics · Differentiation · Experiments · Agent runs · Decision tabs), Discovery (run + live progress), Experiments, Agents (registry, runs, tasks with retry), Users and Audit log (owner/admin), Settings. Buttons a role can't use are hidden; the server still enforces every rule.
 
 The UI relies on **one origin for the app and `/api`** (the refresh token is an HttpOnly cookie). The dev server and `vite preview` proxy `/api`; in production serve `frontend/dist` and reverse-proxy `/api/` to the backend, e.g. with nginx:
 
@@ -103,7 +103,7 @@ docker/docker-compose.yml   MongoDB + API
 
 * Added `DiscoveryRun` (needed by `/api/discovery/runs`) and `IdempotencyKey` collections.
 * Opportunity gains `analysis`, `uncertainties`, `assumptions`, `pausedFromStatus`, `decision`, `discoveryRunId`, `economics.basis`; `BusinessModel.evidenceTypes` records the evidence type per field.
-* Extra endpoints: `POST /opportunities/:id/pause|resume`, `POST /experiments/:id/cancel`, `GET /agents/tasks`, `POST /agents/tasks/:id/retry`, `GET|PATCH /users`.
+* Extra endpoints: `POST /opportunities/:id/pause|resume`, `POST /experiments/:id/cancel`, `GET /agents/tasks`, `POST /agents/tasks/:id/retry`, `GET|PATCH /users`, `GET /audit` and `GET /audit/facets` (OWNER/ADMIN; filter by action, resource, actor, actor type and date range; events carry IP/user agent, so the log is not exposed to ANALYST/VIEWER).
 * `capitalRequirement: LOW_TO_MEDIUM` (Analyst output) maps to `MEDIUM` on the stored `complexity.capital` enum.
 * Registration returns 409 for duplicate emails as the spec's test matrix requires (this reveals account existence; forgot-password/resend do not).
 
@@ -112,7 +112,7 @@ docker/docker-compose.yml   MongoDB + API
 * **Email delivery**: only a logging transport ships; plug a provider into `createEmailService({ transport })`. No provider was named in the specs.
 * **Search adapters** (Tavily, Brave) follow the public API docs but were **not exercised against the live services**; the OpenAI provider likewise has not been run against the real API here. Tests inject fakes.
 * **Refresh tokens are single-session** (rotation increments a per-user version), so signing in on a second device signs out the first.
-* Audit writes are best-effort (standalone MongoDB has no cross-collection transactions); failures are logged.
+* Audit events are readable through the API and UI but never editable or deletable (append-only at the model level). Audit writes are best-effort (standalone MongoDB has no cross-collection transactions); failures are logged.
 * Page fetching does not honour `robots.txt` yet, and can't fully close DNS-rebinding TOCTOU — deploy the API where internal services aren't reachable.
 * Cancelling a discovery run aborts in-flight agents only when the worker runs in the same process as the API; with a separate worker process their results are discarded instead.
 * Cost is recorded only when `AI_PRICE_*_PER_MTOK` is set; otherwise `estimatedCost` is `null` (no guessed prices).
@@ -123,8 +123,9 @@ docker/docker-compose.yml   MongoDB + API
 * Evidence is never shown without its type: sourced claims (`VERIFIED`/`SUPPORTED`) and AI inference (`INFERRED`/`ASSUMED`) have distinct chips, the Evidence tab states how many claims cite a stored source, and economic figures carry an "AI estimates, not facts" warning with their stated basis.
 * Source links only render for `http(s)` URLs and use `rel="noopener noreferrer nofollow"`.
 * MUI v9 silently ignores removed props (`inputProps`, `fontWeight`, `color`… on `Typography`/`Stack`); a unit test guards against reintroducing them.
-* Verified with 9 unit tests plus a 19-scenario Playwright run in real Chromium against the real backend (fake AI/search providers): auth incl. email verification, live discovery progress, evidence/competitor/economics tabs, approve/reject dialogs, the experiment lifecycle with the budget gate, role-restricted UI, mobile drawer, logout. That browser script is **not** committed and not part of CI.
-* Not built: Businesses/portfolio pages, and an audit-log viewer (the API has no endpoint for reading audit events yet).
+* Verified with 9 unit tests plus a 22-scenario Playwright run in real Chromium against the real backend (fake AI/search providers): auth incl. email verification, live discovery progress, evidence/competitor/economics tabs, approve/reject dialogs, the experiment lifecycle with the budget gate, role-restricted UI, mobile drawer, logout. That browser script is **not** committed and not part of CI.
+* The Audit log page (owner/admin) filters and pages through events and opens a full before/after/metadata view; each opportunity has a History tab (same roles) showing its ordered status path.
+* Not built: Businesses/portfolio pages.
 
 ## Test status
 
