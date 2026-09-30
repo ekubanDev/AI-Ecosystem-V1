@@ -1,0 +1,30 @@
+# Local development stack: MongoDB + API (with the in-process task worker).
+#   cp backend/.env.example backend/.env   # fill in JWT secrets (+ OPENAI_API_KEY, SEARCH_*)
+#   docker compose -f docker/docker-compose.yml up --build
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ../backend
+    restart: unless-stopped
+    env_file: ../backend/.env
+    environment:
+      NODE_ENV: development
+      MONGODB_URI: mongodb://mongo:27017/ai_business_factory
+    ports:
+      - "3001:3001"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:

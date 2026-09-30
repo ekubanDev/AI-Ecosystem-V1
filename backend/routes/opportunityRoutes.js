@@ -1,0 +1,21 @@
+import { Router } from "express";
+import * as c from "../controllers/opportunityController.js";
+import { protect, requireCapability } from "../middleware/auth.js";
+import { idempotent } from "../middleware/idempotency.js";
+import { validate } from "../middleware/validate.js";
+import { idParam } from "../validators/common.js";
+import * as v from "../validators/opportunity.js";
+
+const r = Router();
+r.use(protect);
+r.get("/", requireCapability("opportunities:read"), validate({ query: v.listOpportunities }), c.list);
+r.post("/", requireCapability("opportunities:write"), validate({ body: v.createOpportunity }), c.create);
+r.get("/:id", requireCapability("opportunities:read"), validate({ params: idParam }), c.get);
+r.patch("/:id", requireCapability("opportunities:write"), validate({ params: idParam, body: v.updateOpportunity }), c.update);
+r.delete("/:id", requireCapability("opportunities:write"), validate({ params: idParam }), c.remove);
+r.post("/:id/analyze", requireCapability("agents:run"), validate({ params: idParam }), idempotent, c.analyze);
+r.post("/:id/approve", requireCapability("opportunities:approve"), validate({ params: idParam, body: v.decisionBody }), c.approve);
+r.post("/:id/reject", requireCapability("opportunities:approve"), validate({ params: idParam, body: v.rejectBody }), c.reject);
+r.post("/:id/pause", requireCapability("opportunities:approve"), validate({ params: idParam, body: v.decisionBody }), c.pause);
+r.post("/:id/resume", requireCapability("opportunities:approve"), validate({ params: idParam }), c.resume);
+export default r;
