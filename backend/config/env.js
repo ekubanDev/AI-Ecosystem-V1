@@ -28,7 +28,9 @@ const schema = z.object({
 
   CLIENT_URL: z.string().default("http://localhost:3000"),
   EMAIL_FROM: z.string().default("AI Business Factory <no-reply@localhost>"),
-  EMAIL_PROVIDER_API_KEY: z.string().optional(),
+  // Gmail SMTP (use an App Password, not the account password). Both or neither.
+  GMAIL_USER: z.string().email().optional().or(z.literal("").transform(() => undefined)),
+  GMAIL_APP_PASSWORD: z.string().optional().or(z.literal("").transform(() => undefined)),
 
   RATE_LIMIT_ENABLED: bool(true),
   RATE_LIMIT_MAX: num(300),
@@ -69,6 +71,9 @@ export function loadEnv(source = process.env) {
   if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
     throw new Error("Invalid environment configuration: JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must differ.");
   }
+  if (Boolean(env.GMAIL_USER) !== Boolean(env.GMAIL_APP_PASSWORD)) {
+    throw new Error("Invalid environment configuration: set both GMAIL_USER and GMAIL_APP_PASSWORD, or neither.");
+  }
   const isProd = env.NODE_ENV === "production";
   const origins = env.CLIENT_URL.split(",").map((s) => s.trim()).filter(Boolean);
   return {
@@ -78,6 +83,7 @@ export function loadEnv(source = process.env) {
     clientOrigins: origins,
     clientUrl: origins[0],
     trustProxy: env.TRUST_PROXY === "true" ? true : env.TRUST_PROXY === "false" ? false : Number.isNaN(Number(env.TRUST_PROXY)) ? env.TRUST_PROXY : Number(env.TRUST_PROXY),
+    gmailAppPassword: env.GMAIL_APP_PASSWORD?.replace(/\s+/g, ""), // Google shows app passwords in groups of four; spaces are cosmetic
     autoIndex: env.MONGO_AUTO_INDEX ? env.MONGO_AUTO_INDEX === "true" : !isProd,
   };
 }

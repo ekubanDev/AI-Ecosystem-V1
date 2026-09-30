@@ -5,6 +5,7 @@ import { createTaskWorker } from "./orchestrator/taskWorker.js";
 import { createAIService, createOpenAIProvider } from "./services/aiService.js";
 import { createAuthService } from "./services/authService.js";
 import { createEmailService } from "./services/emailService.js";
+import { createGmailTransport } from "./services/emailTransports.js";
 import { createResearchService } from "./services/researchService.js";
 import { createSearchProvider } from "./services/searchProviders.js";
 
@@ -19,7 +20,10 @@ export function createContainer(config, overrides = {}) {
   const registry = createDefaultRegistry();
   const ai = createAIService({ config, provider: aiProvider });
   const research = createResearchService({ searchProvider, fetcher: overrides.fetcher });
-  const emailService = createEmailService({ config, transport: overrides.emailTransport });
+  const emailTransport =
+    overrides.emailTransport ??
+    (config.GMAIL_USER ? createGmailTransport({ user: config.GMAIL_USER, appPassword: config.gmailAppPassword, from: config.EMAIL_FROM }) : undefined); // undefined -> logging transport
+  const emailService = createEmailService({ config, transport: emailTransport });
   const authService = createAuthService({ emailService });
   const orchestrator = createOrchestrator({ registry });
   const runner = createTaskRunner({ registry, ai, research, orchestrator, config });
