@@ -10,6 +10,7 @@ export const CAPABILITIES = {
   "experiments:write": ["OWNER", "ADMIN", "ANALYST"],
   "experiments:approve": ["OWNER", "ADMIN"], // start experiments above the budget threshold
   "users:manage": ["OWNER", "ADMIN"],
+  "audit:read": ["OWNER", "ADMIN"], // audit events include IP addresses, user agents and before/after snapshots
   "dashboard:read": ["OWNER", "ADMIN", "ANALYST", "VIEWER"],
 };
 

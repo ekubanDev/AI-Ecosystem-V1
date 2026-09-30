@@ -8,6 +8,7 @@ import { authLimiter, globalLimiter } from "./middleware/rateLimit.js";
 import { requestId } from "./middleware/requestId.js";
 import { requestLogger } from "./middleware/requestLogger.js";
 import agentRoutes from "./routes/agentRoutes.js";
+import auditRoutes from "./routes/auditRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import discoveryRoutes from "./routes/discoveryRoutes.js";
@@ -48,6 +49,7 @@ export function createApp(container) {
   app.use("/api/agents", agentRoutes);
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/users", userRoutes);
+  app.use("/api/audit", auditRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
