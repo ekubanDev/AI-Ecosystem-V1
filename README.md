@@ -123,7 +123,7 @@ docker/docker-compose.yml   MongoDB + API
 * Evidence is never shown without its type: sourced claims (`VERIFIED`/`SUPPORTED`) and AI inference (`INFERRED`/`ASSUMED`) have distinct chips, the Evidence tab states how many claims cite a stored source, and economic figures carry an "AI estimates, not facts" warning with their stated basis.
 * Source links only render for `http(s)` URLs and use `rel="noopener noreferrer nofollow"`.
 * MUI v9 silently ignores removed props (`inputProps`, `fontWeight`, `color`… on `Typography`/`Stack`); a unit test guards against reintroducing them.
-* Verified with 9 unit tests plus a 22-scenario Playwright run in real Chromium against the real backend (fake AI/search providers): auth incl. email verification, live discovery progress, evidence/competitor/economics tabs, approve/reject dialogs, the experiment lifecycle with the budget gate, role-restricted UI, mobile drawer, logout. That browser script is **not** committed and not part of CI.
+* Verified with 14 unit tests plus a 22-scenario Playwright suite in real Chromium against the real backend and worker (fake AI/search/email providers; see [`e2e/`](e2e)), which also runs in CI: auth incl. email verification, live discovery progress, evidence/competitor/economics tabs, approve/reject dialogs, the experiment lifecycle with the budget gate, role-restricted UI, mobile drawer, logout.
 * The Audit log page (owner/admin) filters and pages through events and opens a full before/after/metadata view; each opportunity has a History tab (same roles) showing its ordered status path.
 * Not built: Businesses/portfolio pages.
 
