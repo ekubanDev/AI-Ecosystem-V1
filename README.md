@@ -10,7 +10,19 @@ This repository contains **Backend Implementation v0.1** and the **React fronten
 | [Technical Specification v0.1](docs/specs/AI_Business_Factory_Technical_Specification_v0.1.md) | Architecture, agents, workflow |
 | [Database & API Specification v0.1](docs/specs/AI_Business_Factory_Database_API_Specification_v0.1.md) | Schemas, API contracts, states (this backend implements it) |
 
+> Continuing the project in an AI coding tool (e.g. Claude Code in Cursor)? Read [`CLAUDE.md`](CLAUDE.md) (architecture, rules, gotchas) and [`docs/HANDOFF.md`](docs/HANDOFF.md) (status, what's unverified, next steps).
+
 ## Quick start
+
+Fastest path (Node ≥ 20; uses Docker for MongoDB only if none is running):
+
+```bash
+node scripts/dev.mjs setup --owner you@example.com   # prints a one-time password; never overwrites backend/.env (re-running --owner for the same email resets that account's password)
+npm run dev                                          # API :3001 + frontend :3000
+node scripts/dev.mjs test [--e2e]                    # all test suites
+```
+
+Manual path:
 
 ```bash
 cd backend

@@ -1,0 +1,10 @@
+{
+  "name": "ai-business-factory",
+  "private": true,
+  "description": "Convenience scripts for local development. The backend, frontend and e2e folders are independent npm projects.",
+  "scripts": {
+    "setup": "node scripts/dev.mjs setup",
+    "dev": "node scripts/dev.mjs start",
+    "test": "node scripts/dev.mjs test"
+  }
+}
