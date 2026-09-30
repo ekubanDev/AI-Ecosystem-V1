@@ -1,0 +1,13 @@
+{
+  "name": "ai-business-factory-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser end-to-end tests: real backend + built frontend in real Chromium, with fake AI/search providers (no network).",
+  "scripts": {
+    "test": "node run-all.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.63.0"
+  }
+}
