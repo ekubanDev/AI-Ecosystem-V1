@@ -2,15 +2,13 @@
 
 An AI-agent system that discovers online business opportunities, gathers **source-backed evidence**, reverse-engineers business models, and routes the results to a human for approval before any validation experiment.
 
-This repository currently contains **Backend Implementation v0.1** — the executable form of the three specifications in [`docs/specs/`](docs/specs):
+This repository contains **Backend Implementation v0.1** and the **React frontend** — the executable form of the three specifications in [`docs/specs/`](docs/specs):
 
 | Document | Role |
 |---|---|
 | [Blueprint v0.1](docs/specs/AI_Business_Factory_Blueprint_v0.1.md) | Strategy, agent hierarchy, guiding rules |
 | [Technical Specification v0.1](docs/specs/AI_Business_Factory_Technical_Specification_v0.1.md) | Architecture, agents, workflow |
 | [Database & API Specification v0.1](docs/specs/AI_Business_Factory_Database_API_Specification_v0.1.md) | Schemas, API contracts, states (this backend implements it) |
-
-The React frontend is the next milestone and is **not** part of this change.
 
 ## Quick start
 
@@ -33,6 +31,27 @@ curl -s localhost:3001/api/auth/login -H 'Content-Type: application/json' \
 curl -s localhost:3001/api/discovery/run -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"objective":"Find B2B opportunities adaptable to Ghana.","count":20,"market":"Ghana","customerType":"B2B"}'
 ```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:3000 — proxies /api to the backend on :3001
+npm test           # unit tests
+npm run build      # static files in frontend/dist
+```
+
+Log in with the account you seeded. Pages: Overview, Opportunities (search/filter/sort, details with Evidence · Business model · Competitors · Economics · Differentiation · Experiments · Agent runs · Decision tabs), Discovery (run + live progress), Experiments, Agents (registry, runs, tasks with retry), Users (owner/admin), Settings. Buttons a role can't use are hidden; the server still enforces every rule.
+
+The UI relies on **one origin for the app and `/api`** (the refresh token is an HttpOnly cookie). The dev server and `vite preview` proxy `/api`; in production serve `frontend/dist` and reverse-proxy `/api/` to the backend, e.g. with nginx:
+
+```nginx
+location /api/ { proxy_pass http://backend:3001; proxy_set_header X-Forwarded-For $remote_addr; }
+location /     { root /srv/abf; try_files $uri /index.html; }
+```
+
+Set `TRUST_PROXY=1` on the backend and `CLIENT_URL` to the public origin.
 
 To get real results configure `OPENAI_API_KEY` **and** a search provider (`SEARCH_PROVIDER=tavily|brave` + `SEARCH_API_KEY`). Without a search provider the agents cannot gather sources; they say so and report thin evidence instead of inventing any (see below).
 
@@ -76,6 +95,7 @@ backend/
   orchestrator/      workflows, task runner (retries, timeouts, cancel), worker, persistence
   scripts/seed.js    create the first OWNER
   tests/             node:test + supertest, no network (fake AI / search / email)
+frontend/          React + MUI + React Router + TanStack Query (Vite)
 docker/docker-compose.yml   MongoDB + API
 ```
 
@@ -96,6 +116,15 @@ docker/docker-compose.yml   MongoDB + API
 * Page fetching does not honour `robots.txt` yet, and can't fully close DNS-rebinding TOCTOU — deploy the API where internal services aren't reachable.
 * Cancelling a discovery run aborts in-flight agents only when the worker runs in the same process as the API; with a separate worker process their results are discarded instead.
 * Cost is recorded only when `AI_PRICE_*_PER_MTOK` is set; otherwise `estimatedCost` is `null` (no guessed prices).
+
+## Frontend notes
+
+* The access token is held in memory only; a non-sensitive `localStorage` flag tells a returning visitor to try the refresh cookie (first-time visitors don't fire a doomed request). Refresh is single-flight because refresh tokens rotate.
+* Evidence is never shown without its type: sourced claims (`VERIFIED`/`SUPPORTED`) and AI inference (`INFERRED`/`ASSUMED`) have distinct chips, the Evidence tab states how many claims cite a stored source, and economic figures carry an "AI estimates, not facts" warning with their stated basis.
+* Source links only render for `http(s)` URLs and use `rel="noopener noreferrer nofollow"`.
+* MUI v9 silently ignores removed props (`inputProps`, `fontWeight`, `color`… on `Typography`/`Stack`); a unit test guards against reintroducing them.
+* Verified with 9 unit tests plus a 19-scenario Playwright run in real Chromium against the real backend (fake AI/search providers): auth incl. email verification, live discovery progress, evidence/competitor/economics tabs, approve/reject dialogs, the experiment lifecycle with the budget gate, role-restricted UI, mobile drawer, logout. That browser script is **not** committed and not part of CI.
+* Not built: Businesses/portfolio pages, and an audit-log viewer (the API has no endpoint for reading audit events yet).
 
 ## Test status
 
