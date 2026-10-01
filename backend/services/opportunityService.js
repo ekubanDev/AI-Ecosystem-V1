@@ -4,7 +4,7 @@ import { Competitor, BusinessModel, Experiment, Opportunity, Source } from "../m
 import { canTransition, OPPORTUNITY_FLOW, sourcesFor } from "../models/stateMachine.js";
 import { AppError, conflict, invalidTransition, notFound } from "../utils/errors.js";
 import { buildSort, escapeRegex } from "../utils/pagination.js";
-import { jaccard, nameKey, nameTokens, slugify } from "../utils/text.js";
+import { distinctiveTokens, jaccard, nameKey, nameTokens, slugify } from "../utils/text.js";
 import { actorFromReq, audit } from "./auditService.js";
 
 const notDeleted = { isDeleted: { $ne: true } };
@@ -141,18 +141,50 @@ export async function resumeOpportunity(id, req) {
   return transitionOpportunity({ id, to: current.pausedFromStatus, from: "PAUSED", unset: { pausedFromStatus: 1 }, req });
 }
 
+/** The company-name part of a candidate name: "AgroCenta - Agri Supply Chain Platform" and "AgroCenta Digital Market Platform" both give "agrocenta". */
+export function brandOf(name) {
+  const seg = String(name).split(/\s[-–—:]\s/)[0].trim();
+  const words = seg.split(/\s+/);
+  if (seg !== String(name).trim() && words.length <= 3 && nameKey(seg).length >= 4) return nameKey(seg);
+  return /^[A-Z][a-z]+[A-Z][A-Za-z]{2,}$/.test(words[0]) ? words[0].toLowerCase() : null; // CamelCase first word, e.g. TradeDepot
+}
+
+export const toIndexEntry = ({ _id, name, slug }) => ({ id: _id, slug, key: nameKey(name), tokens: nameTokens(name), distinct: distinctiveTokens(name), brand: brandOf(name) });
+
 /** Loads existing opportunity names once so a batch of candidates can be deduplicated without a query per candidate. */
 export async function loadNameIndex() {
   const rows = await Opportunity.find(notDeleted).select("name slug").limit(10000);
-  return rows.map((r) => ({ id: r._id, slug: r.slug, key: nameKey(r.name), tokens: nameTokens(r.name) }));
+  return rows.map(toIndexEntry);
 }
 
-/** Duplicate if same slug, same normalized name, or strongly overlapping name tokens (Jaccard >= 0.8 with >= 2 tokens). */
+/**
+ * Same business under a different name? Duplicate if: same slug or normalized name; strongly overlapping name tokens
+ * (Jaccard >= 0.8 with >= 2 tokens); or, ignoring generic business-type words, one name's distinctive words are (nearly)
+ * contained in the other's: a lone shared brand word when a name is nothing but that brand, or >= 2 shared words covering
+ * >= 60% of the shorter name; or the same company-name part (see brandOf). Live discovery produced six such pairs (TradeDepot, Shopa, AgroCenta, ...).
+ */
 export function findDuplicate(name, index) {
   const slug = slugify(name);
   const key = nameKey(name);
   const tokens = nameTokens(name);
-  return index.find((e) => e.slug === slug || e.key === key || (tokens.size >= 2 && e.tokens.size >= 2 && jaccard(tokens, e.tokens) >= 0.8)) ?? null;
+  const distinct = distinctiveTokens(name);
+  const brand = brandOf(name);
+  const sameBusiness = (a, b) => {
+    if (!a.size || !b.size) return false;
+    let shared = 0;
+    for (const t of a) if (b.has(t)) shared++;
+    const smaller = Math.min(a.size, b.size);
+    return (smaller === 1 && shared === 1 && (a.size === 1 || b.size === 1)) || (shared >= 2 && shared / smaller >= 0.6);
+  };
+  return (
+    index.find(
+      (e) =>
+        e.slug === slug || e.key === key ||
+        (tokens.size >= 2 && e.tokens.size >= 2 && jaccard(tokens, e.tokens) >= 0.8) ||
+        (brand && e.brand === brand) ||
+        sameBusiness(distinct, e.distinct ?? new Set())
+    ) ?? null
+  );
 }
 
 export const newId = () => new mongoose.Types.ObjectId();

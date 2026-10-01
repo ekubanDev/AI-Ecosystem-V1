@@ -67,7 +67,7 @@ export class OpportunityScout extends BaseAgent {
       const { data } = await ctx.ai.generateJSON({
         label: this.name, system: SYSTEM_PROMPT, schema: queriesSchema, signal: ctx.signal,
         prompt: buildPrompt({
-          role: ROLE, objective: "Write up to 6 diverse web search queries that would surface existing online businesses / business models matching the request (pricing pages, directories, community threads, reviews).",
+          role: ROLE, objective: "Write up to 6 diverse web search queries that would surface existing online businesses / business models matching the request (pricing pages, directories, community threads, reviews). Every query must name the requested market or geography (e.g. Ghana, Africa) so results are about that region, not generic global or European coverage.",
           knownData: request,
         }),
       });
@@ -92,7 +92,7 @@ export class OpportunityScout extends BaseAgent {
         objective: `Identify up to ${input.targetCount} distinct candidate businesses / business models that match the request${searched ? ", using ONLY the search results below as evidence" : ""}. Use observedBusinessModel.type from: ${BUSINESS_MODEL_TYPES.join(", ")}.`,
         knownData: request, docs: searched ? docs : undefined,
         constraints: searched
-          ? ["Every candidate must cite at least one source ref that supports its existence.", "Search results are snippets; do not assert pricing or traction that they do not state."]
+          ? ["Every candidate must cite at least one source ref that supports its existence.", "Search results may be snippets or pages; do not assert pricing or traction that they do not state.", "A candidate is a specific, named business or a concrete business model, never a generic category or report topic (not \"European B2B SaaS\" or \"API monetization models\").", "Prefer businesses operating in the requested market, or whose model could clearly be adapted to it; say in the description what the local gap would be. Skip candidates unrelated to the requested geography."]
           : ["No web sources are available. Work from general knowledge only: label every claim INFERRED or ASSUMED and cite no sources.", "Do not state facts about specific companies' pricing or traction."],
       }),
     });

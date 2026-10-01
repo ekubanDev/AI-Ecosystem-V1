@@ -2,7 +2,7 @@ import { BusinessModel, Competitor, Opportunity, Source } from "../models/index.
 import { AppError } from "../utils/errors.js";
 import { nameKey, slugify } from "../utils/text.js";
 import { AGENT_ACTOR, audit } from "../services/auditService.js";
-import { findDuplicate, loadNameIndex } from "../services/opportunityService.js";
+import { findDuplicate, loadNameIndex, toIndexEntry } from "../services/opportunityService.js";
 import { WRITE_KIND } from "./workflowRegistry.js";
 
 const RESEARCH_AREAS = { marketEvidence: "market", customerEvidence: "customer", pricingEvidence: "pricing", competitorEvidence: "competitor", businessModelEvidence: "businessModel" };
@@ -57,7 +57,7 @@ export async function persistScout(output, { agent, run, requestedBy, defaults =
       throw err;
     }
     created.push(opp);
-    index.push({ id: opp._id, slug: opp.slug, key: nameKey(opp.name), tokens: new Set(opp.name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)) });
+    index.push(toIndexEntry(opp));
     if (c.sourceIds.length) await Source.updateMany({ _id: { $in: c.sourceIds } }, { $addToSet: { opportunityIds: opp._id } });
     await audit({ actor: AGENT_ACTOR(agent.agentType), action: "OPPORTUNITY_CREATED", resourceType: "Opportunity", resourceId: opp._id, after: { name: opp.name, status: opp.status }, metadata: { discoveryRunId: run && String(run._id) } });
   }

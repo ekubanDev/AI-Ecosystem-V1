@@ -44,6 +44,7 @@ const schema = z.object({
 
   SEARCH_PROVIDER: z.enum(["none", "tavily", "brave"]).default("none"),
   SEARCH_API_KEY: z.string().optional(),
+  SEARCH_BLOCKED_DOMAINS: z.string().default("finance.yahoo.com,rocketreach.co"), // comma-separated; results from these hosts (and subdomains) are dropped
 
   RUN_WORKER: bool(true),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(2),

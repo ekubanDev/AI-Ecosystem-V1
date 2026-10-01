@@ -19,7 +19,7 @@ export function createContainer(config, overrides = {}) {
 
   const registry = createDefaultRegistry();
   const ai = createAIService({ config, provider: aiProvider });
-  const research = createResearchService({ searchProvider, fetcher: overrides.fetcher });
+  const research = createResearchService({ searchProvider, fetcher: overrides.fetcher, blockedDomains: config.SEARCH_BLOCKED_DOMAINS.split(",") });
   const emailTransport =
     overrides.emailTransport ??
     (config.GMAIL_USER ? createGmailTransport({ user: config.GMAIL_USER, appPassword: config.gmailAppPassword, from: config.EMAIL_FROM }) : undefined); // undefined -> logging transport
