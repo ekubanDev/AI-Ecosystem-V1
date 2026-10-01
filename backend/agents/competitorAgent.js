@@ -10,7 +10,7 @@ const inputSchema = z.object({
   evidence: z.array(z.object({ claim: z.string() }).passthrough()).max(100).default([]),
 });
 
-const queriesSchema = z.object({ queries: z.array(z.string().trim().min(3)).min(1).max(6) });
+const queriesSchema = z.object({ queries: z.array(z.string().trim().min(3)).min(1).max(30) }); // the agent keeps only the first few; a hard cap here failed whole runs when the model over-delivered
 
 const nullableStr = z.string().trim().max(1000).nullish(); // normalized to null after parsing (transforms cannot be expressed in JSON Schema)
 const llmSchema = z.object({

@@ -61,7 +61,7 @@ export function createAIService({ config, provider }) {
       const check = schema.safeParse(parsed);
       if (!check.success) {
         const issues = check.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`);
-        throw new AppError("AGENT_ERROR", `${label}: model output failed schema validation.`, { retryable: true, details: issues });
+        throw new AppError("AGENT_ERROR", `${label}: model output failed schema validation (${issues.join("; ")}).`, { retryable: true, details: issues }); // issues in the message: it is what AgentRun.error stores, and live failures were undiagnosable without it
       }
       return { data: check.data, usage: res.usage, model: res.model };
     },
