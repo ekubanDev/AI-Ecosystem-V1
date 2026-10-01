@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import "./helpers.js";
 import { capConfidence, resolveEvidence } from "../agents/agentUtils.js";
+import { createResearchService } from "../services/researchService.js";
 import { loadEnv } from "../config/env.js";
 import { OPPORTUNITY_FLOW, assertTransition, canTransition, sourcesFor } from "../models/stateMachine.js";
 import { assertNoOperators } from "../utils/sanitize.js";
@@ -10,7 +11,7 @@ import { htmlToText } from "../utils/html.js";
 import { isPrivateAddress } from "../utils/net.js";
 import { assertPublicUrl, safeFetchText } from "../utils/safeFetch.js";
 import { jaccard, nameTokens, normalizeUrl, slugify } from "../utils/text.js";
-import { findDuplicate } from "../services/opportunityService.js";
+import { findDuplicate, toIndexEntry } from "../services/opportunityService.js";
 import { nameKey } from "../utils/text.js";
 
 describe("opportunity state machine", () => {
@@ -160,5 +161,33 @@ describe("retry classification", () => {
     assert.equal(isRetryable(Object.assign(new Error("x"), { code: "ECONNRESET" })), true);
     assert.equal(isRetryable(new AppError("VALIDATION_ERROR", "x")), false);
     assert.equal(isRetryable(new TypeError("bug")), false);
+  });
+});
+
+describe("duplicate opportunity detection", () => {
+  const idx = (...names) => names.map((name, i) => toIndexEntry({ _id: String(i), name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-") }));
+  it("catches the same business under different descriptive suffixes (seen in live runs)", () => {
+    const cases = [
+      ["TradeDepot - B2B Retail Supply Marketplace", "TradeDepot B2B E-commerce Marketplace"],
+      ["Shopa - Retailer-Supplier B2B E-Commerce Platform", "Shopa B2B E-Commerce Platform"],
+      ["AgroCenta - Agri Supply Chain Linkage Platform", "AgroCenta Digital Market Linkage Platform"],
+      ["Trade Ghana - Maize Trading B2B Platform", "Trade Ghana B2B Platform"],
+      ["Boost Ghana WhatsApp Ordering and Data Analytics", "Boost Ghana B2B Commerce Platform"],
+    ];
+    for (const [a, b] of cases) assert.ok(findDuplicate(b, idx(a)), `${b} should duplicate ${a}`);
+  });
+  it("keeps genuinely different businesses apart", () => {
+    const existing = idx("TradeDepot - B2B Retail Supply Marketplace", "Jowato SME Marketplace", "European B2B Marketplaces for Wholesale and Industry-Specific Goods");
+    for (const n of ["Tudu Technologies Online Shopping Platform", "Frikmat Multi-Category B2B Platform", "Trade Africa Loans Platform", "European B2B Business Directories and Lead Generation Platforms", "AkokoMarket - Offline and Online Market Access for Farmers"]) {
+      assert.equal(findDuplicate(n, existing), null, n);
+    }
+  });
+});
+
+describe("blocked search domains", () => {
+  it("drops results from blocked hosts and their subdomains before they become Sources", async () => {
+    const provider = { search: async () => [{ url: "https://finance.yahoo.com/quote/X", title: "t", snippet: "s" }, { url: "https://uk.finance.yahoo.com/x", title: "t", snippet: "s" }, { url: "not a url", title: "t", snippet: "s" }] };
+    const research = createResearchService({ searchProvider: provider, blockedDomains: ["finance.yahoo.com"] });
+    assert.deepEqual(await research.search("q"), []);
   });
 });

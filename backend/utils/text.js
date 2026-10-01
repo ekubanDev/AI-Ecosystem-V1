@@ -21,6 +21,11 @@ export const nameTokens = (s) =>
       .filter((t) => t && !STOP.has(t))
   );
 
+// Words that describe the *kind* of business, not which one it is. "TradeDepot - B2B Retail Supply Marketplace" and
+// "TradeDepot B2B E-commerce Marketplace" differ only in these, so comparing them as a whole misses the duplicate.
+const GENERIC = new Set(["b2b", "b2c", "b2b2c", "marketplace", "marketplaces", "commerce", "ecommerce", "retail", "supply", "trading", "online", "digital", "service", "services", "solution", "solutions", "business", "businesses", "model", "models", "subscription", "provider", "providers", "agency", "agencies", "system", "systems", "network", "linkage", "chain", "management", "global", "offerings", "saas", "api", "fintech", "smb", "smbs", "sme", "smes"]);
+export const distinctiveTokens = (s) => new Set([...nameTokens(s)].filter((t) => !GENERIC.has(t)));
+
 export const jaccard = (a, b) => {
   if (!a.size || !b.size) return 0;
   let inter = 0;

@@ -9,7 +9,17 @@ const MAX_PAGE_CHARS = 20000;
  * Web research capability handed to agents that have external permission.
  * Every result is persisted as a Source, so downstream claims can cite real, inspectable records instead of model-invented ones.
  */
-export function createResearchService({ searchProvider = null, fetcher = safeFetchText } = {}) {
+export function createResearchService({ searchProvider = null, fetcher = safeFetchText, blockedDomains = [] } = {}) {
+  const blocked = blockedDomains.map((d) => d.trim().toLowerCase()).filter(Boolean);
+  const isBlocked = (url) => {
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      return blocked.some((d) => host === d || host.endsWith(`.${d}`));
+    } catch {
+      return false;
+    }
+  };
+
   return {
     searchAvailable: Boolean(searchProvider),
 
@@ -19,7 +29,7 @@ export function createResearchService({ searchProvider = null, fetcher = safeFet
       const results = await searchProvider.search(query, { maxResults, signal });
       const out = [];
       for (const r of results) {
-        if (!r?.url) continue;
+        if (!r?.url || isBlocked(r.url)) continue; // e.g. stock-quote and contact-scraper pages: noise that still gets cited as evidence
         try {
           const src = await upsertSource({ url: r.url, title: r.title, summary: r.snippet, sourceType: "SEARCH_RESULT", opportunityId });
           out.push({ title: r.title ?? src.title, url: src.url, snippet: r.snippet ?? "", sourceId: String(src._id) });
