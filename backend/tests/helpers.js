@@ -136,16 +136,20 @@ function defaultResponse(label, prompt) {
   }
 }
 
+// Source text the scripted model answers are allowed to cite: evidence is now checked against the cited text, so the
+// fake sources must actually say what the fake model claims.
+const FAKE_FACTS = "Pricing, customers and reviews. Offers monthly subscription pricing. Lists a free tier. Plans start at $10/month. SMEs compare suppliers manually. Buyers complain about opaque pricing. Acme Procure is a direct alternative. Revenue is subscription based.";
+
 export const fakeSearchProvider = {
   name: "fake-search",
   async search() {
-    return URLS.map((url, i) => ({ title: `Result ${i + 1}`, url, snippet: `Snippet for result ${i + 1}: pricing, customers and reviews.` }));
+    return URLS.map((url, i) => ({ title: `Result ${i + 1}`, url, snippet: `Snippet for result ${i + 1}: ${FAKE_FACTS}` }));
   },
 };
 
 export const fakeFetcher = async (url) => ({
   finalUrl: url, contentType: "text/html",
-  body: `<html><head><title>Page at ${new URL(url).hostname}</title></head><body><h1>Pricing</h1><p>Plans from $10 per month for SMEs.</p><script>x()</script></body></html>`,
+  body: `<html><head><title>Page at ${new URL(url).hostname}</title></head><body><h1>Pricing</h1><p>Plans from $10 per month for SMEs.</p><p>${FAKE_FACTS}</p><script>x()</script></body></html>`,
 });
 
 /**

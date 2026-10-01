@@ -35,7 +35,7 @@ CI (`.github/workflows/ci.yml`) runs backend (real `mongo:7`), frontend and e2e.
 
 Agents must never present inference as fact. This is enforced **in code**, not just prompts (`agents/agentUtils.js`, each agent, `orchestrator/persistence.js`):
 - Sources are real `Source` records handed to the model as numbered documents; the model cites numbers; invalid citations are dropped.
-- `VERIFIED`/`SUPPORTED` without a valid citation → downgraded to `INFERRED`; confidence capped by evidence type; Analyst confidence capped at LOW with no sourced evidence; economics stored only with a stated basis; competitor pricing/complaints dropped without a citation.
+- `VERIFIED`/`SUPPORTED` without a valid citation, or whose cited text doesn't lexically support the claim (`isGrounded`: figures must appear, ≥50% of content words must overlap) → downgraded to `INFERRED` and the citation dropped; snippet-only evidence is capped at MEDIUM. The grounding check is a cheap guard, not a semantic judge, and its threshold has not been calibrated on live data; confidence capped by evidence type; Analyst confidence capped at LOW with no sourced evidence; economics stored only with a stated basis; competitor pricing/complaints dropped without a citation.
 - No search provider → Scout runs `KNOWLEDGE_ONLY` (everything inferred), Research/Competitor skip the model. Don't "fix" thin results by letting the model guess.
 - Scraped page text is untrusted (delimited; can't close its block). Page fetching is SSRF-guarded (`utils/safeFetch.js`). Keep both properties when touching research code.
 - Agents get only the capabilities they declare (`createAgentContext`); persistence checks write permission. Keep agents least-privilege.
