@@ -42,22 +42,55 @@ export const minConfidence = (list) => list.reduce((a, b) => capConfidence(a, b)
 /** Only sourced evidence may carry high confidence; inference and estimates are capped. */
 const TYPE_CAP = { VERIFIED: "HIGH", SUPPORTED: "HIGH", ESTIMATED: "MEDIUM", INFERRED: "MEDIUM", ASSUMED: "LOW", UNKNOWN: "LOW" };
 
+// ---- does the cited text actually support the claim? ---------------------------------------------------------
+// Live runs showed VERIFIED/HIGH claims citing a source about a different company. A citation that merely *exists* is not
+// support, so a sourced claim must be lexically grounded in the text of what it cites. This is a cheap guard, not a
+// semantic judge: it errs towards downgrading (to INFERRED, capped MEDIUM), never towards upgrading.
+const STOP = new Set("with that this from have their which been more such also into over than they were will when about other these those there where while some most many your what them then only each both very".split(" "));
+const stem = (w) => w.slice(0, 5); // crude: "marketplace"/"markets" match; avoids a stemming dependency
+const words = (t) => [...new Set((t.toLowerCase().match(/[a-z]{4,}/g) ?? []).filter((w) => !STOP.has(w)).map(stem))];
+const numbers = (t) => [...new Set((t.replace(/(\d),(?=\d{3})/g, "$1").match(/\d+(?:\.\d+)?/g) ?? []).filter((n) => n.replace(".", "").length >= 2))];
+export const GROUNDING_MIN_OVERLAP = 0.5;
+
+export function isGrounded(claim, texts) {
+  const hay = texts.join("\n");
+  const hayNoCommas = hay.replace(/(\d),(?=\d{3})/g, "$1");
+  if (!numbers(claim).every((n) => hayNoCommas.includes(n))) return false; // a figure the source never states
+  const w = words(claim);
+  if (w.length < 3) return true; // too little to judge
+  const have = new Set(words(hay));
+  return w.filter((x) => have.has(x)).length / w.length >= GROUNDING_MIN_OVERLAP;
+}
+
 /**
  * Enforces "evidence before conclusions": a claim labelled VERIFIED/SUPPORTED must cite at least one source that
- * actually exists in the material we gave the model; otherwise it is downgraded to INFERRED. Confidence is capped by type.
+ * actually exists in the material we gave the model, and (when `docs` is supplied) the cited text must support it;
+ * otherwise it is downgraded to INFERRED. Confidence is capped by type, and to MEDIUM when every cited source is only
+ * a search-result snippet rather than a fetched page.
  * @param {Array} items model evidence items ({claim, evidenceType, confidence, sourceRefs})
  * @param {Map<number,string>} refMap prompt ref number -> Source id
+ * @param {Array<{ref:number,text?:string,snippetOnly?:boolean}>} [docs] numbered documents; omit to skip the grounding checks
  */
-export function resolveEvidence(items, refMap) {
+export function resolveEvidence(items, refMap, docs = null) {
+  const byRef = docs ? new Map(docs.map((d) => [d.ref, d])) : null;
   return items.map((it) => {
-    const sourceIds = [...new Set(it.sourceRefs.filter((r) => refMap.has(r)).map((r) => refMap.get(r)))];
+    const refs = [...new Set(it.sourceRefs.filter((r) => refMap.has(r)))];
+    let sourceIds = refs.map((r) => refMap.get(r));
     let evidenceType = it.evidenceType;
     let downgraded = false;
-    if (SOURCED_EVIDENCE_TYPES.includes(evidenceType) && sourceIds.length === 0) {
-      evidenceType = "INFERRED";
-      downgraded = true;
+    let snippetOnly = false;
+    if (SOURCED_EVIDENCE_TYPES.includes(evidenceType)) {
+      const cited = byRef ? refs.map((r) => byRef.get(r)).filter(Boolean) : [];
+      if (sourceIds.length === 0 || (byRef && !isGrounded(it.claim, cited.map((d) => d.text ?? "")))) {
+        evidenceType = "INFERRED";
+        downgraded = true;
+        sourceIds = []; // a citation that does not support the claim must not be shown as if it did
+      } else if (cited.length && cited.every((d) => d.snippetOnly)) {
+        snippetOnly = true;
+      }
     }
-    return { claim: it.claim, evidenceType, confidence: capConfidence(it.confidence, TYPE_CAP[evidenceType]), sourceIds, downgraded };
+    const cap = snippetOnly ? capConfidence(TYPE_CAP[evidenceType], "MEDIUM") : TYPE_CAP[evidenceType];
+    return { claim: it.claim, evidenceType, confidence: capConfidence(it.confidence, cap), sourceIds, downgraded };
   });
 }
 

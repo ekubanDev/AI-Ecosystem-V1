@@ -111,6 +111,34 @@ describe("evidence integrity", () => {
     assert.deepEqual([b.evidenceType, b.confidence, b.downgraded], ["INFERRED", "MEDIUM", true]);
     assert.equal(c.confidence, "MEDIUM"); // estimates never reach HIGH
   });
+  describe("grounding in the cited text", () => {
+    const docs = [
+      { ref: 1, text: "AkokoMarket an offline and online market place that connects smallholder farmers to guaranteed markets for their farm produce and inputs by dialing a USSD short code.", snippetOnly: true },
+      { ref: 2, text: "The global subscription economy market is projected to grow from USD 557.8 billion in 2025 to USD 1,944.4 billion by 2035, with B2B accounting for 55.2% market share.", snippetOnly: false },
+    ];
+    const rm = new Map([[1, "src1"], [2, "src2"]]);
+    const run = (claim, refs, type = "VERIFIED") => resolveEvidence([{ claim, evidenceType: type, confidence: "HIGH", sourceRefs: refs }], rm, docs)[0];
+
+    it("downgrades a claim whose citation is about something else, and drops the misleading citation", () => {
+      const r = run("Jowato SME Marketplace offers access to production centers, product development, and market linkages in Ghana.", [1]);
+      assert.deepEqual([r.evidenceType, r.confidence, r.downgraded, r.sourceIds], ["INFERRED", "MEDIUM", true, []]);
+    });
+    it("keeps a claim the cited text supports", () => {
+      const r = run("AkokoMarket connects smallholder farmers to guaranteed markets for their farm produce.", [1]);
+      assert.deepEqual([r.evidenceType, r.downgraded, r.sourceIds], ["VERIFIED", false, ["src1"]]);
+    });
+    it("caps snippet-only evidence at MEDIUM but lets a fetched page reach HIGH", () => {
+      assert.equal(run("AkokoMarket connects smallholder farmers to guaranteed markets for their farm produce.", [1]).confidence, "MEDIUM");
+      assert.equal(run("The global subscription economy market is projected to grow to USD 1,944.4 billion by 2035.", [2]).confidence, "HIGH");
+    });
+    it("requires every figure in the claim to appear in the cited text", () => {
+      assert.equal(run("The subscription economy market is projected to reach USD 999 billion by 2035.", [2]).evidenceType, "INFERRED");
+    });
+    it("does not judge when no documents are supplied (older call sites)", () => {
+      const [r] = resolveEvidence([{ claim: "anything at all about unrelated topics here", evidenceType: "VERIFIED", confidence: "HIGH", sourceRefs: [1] }], rm);
+      assert.equal(r.evidenceType, "VERIFIED");
+    });
+  });
   it("caps confidence", () => {
     assert.equal(capConfidence("HIGH", "LOW"), "LOW");
     assert.equal(capConfidence("UNKNOWN", "HIGH"), "UNKNOWN");

@@ -86,7 +86,7 @@ export class CompetitorAgent extends BaseAgent {
         for (const r of results.slice(0, 3)) {
           if (raw.length >= 8 || seen.has(r.url)) continue;
           const page = ctx.research.fetchPage ? await ctx.research.fetchPage(r.url, { opportunityId: oppId, signal: ctx.signal }) : null;
-          add(page ?? { url: r.url, title: r.title, text: r.snippet, sourceId: r.sourceId });
+          add(page ?? { url: r.url, title: r.title, text: r.snippet, sourceId: r.sourceId, snippetOnly: true });
         }
       }
     }

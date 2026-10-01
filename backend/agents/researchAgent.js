@@ -78,7 +78,7 @@ export class ResearchAgent extends BaseAgent {
         for (const r of results.slice(0, 3)) {
           if (raw.length >= 8 || seen.has(r.url)) continue;
           const page = ctx.research.fetchPage ? await ctx.research.fetchPage(r.url, { opportunityId: oppId, signal: ctx.signal }) : null;
-          add(page ?? { url: r.url, title: r.title, text: r.snippet, sourceId: r.sourceId });
+          add(page ?? { url: r.url, title: r.title, text: r.snippet, sourceId: r.sourceId, snippetOnly: true });
         }
       }
     }
@@ -104,7 +104,7 @@ export class ResearchAgent extends BaseAgent {
     });
 
     const resolved = {};
-    for (const area of AREAS) resolved[area] = resolveEvidence(data[area], refMap);
+    for (const area of AREAS) resolved[area] = resolveEvidence(data[area], refMap, docs);
     const strip = (list) => list.map(({ claim, evidenceType, confidence, sourceIds }) => ({ claim, evidenceType, confidence, sourceIds }));
     const all = AREAS.flatMap((a) => resolved[a]);
 
@@ -112,7 +112,7 @@ export class ResearchAgent extends BaseAgent {
     const uncertainties = [...data.uncertainties];
     if (data.pricing && !priceIds.length) uncertainties.push("A pricing range was proposed without a valid source and was discarded.");
     const downgraded = all.filter((e) => e.downgraded).length;
-    if (downgraded) uncertainties.push(`${downgraded} claim(s) labelled as sourced cited no valid source and were downgraded to INFERRED.`);
+    if (downgraded) uncertainties.push(`${downgraded} claim(s) labelled as sourced cited no valid source, or cited text that does not support them, and were downgraded to INFERRED.`);
 
     return {
       status: "COMPLETED", confidence: overallConfidence(all), findings: toFindings(all),

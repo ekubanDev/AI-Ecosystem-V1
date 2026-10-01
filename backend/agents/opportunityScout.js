@@ -75,7 +75,7 @@ export class OpportunityScout extends BaseAgent {
         for (const r of await ctx.research.search(q, { maxResults: 8, signal: ctx.signal })) {
           if (!seen.has(r.url) && raw.length < 40) {
             seen.add(r.url);
-            raw.push({ url: r.url, title: r.title, text: r.snippet, sourceId: r.sourceId });
+            raw.push({ url: r.url, title: r.title, text: r.snippet, sourceId: r.sourceId, snippetOnly: true });
           }
         }
       }
@@ -105,7 +105,7 @@ export class OpportunityScout extends BaseAgent {
         dropped++; // an observed candidate with no real source is not evidence of anything
         continue;
       }
-      let evidence = resolveEvidence(c.initialEvidence, refMap);
+      let evidence = resolveEvidence(c.initialEvidence, refMap, docs);
       if (!searched) evidence = evidence.map((e) => ({ ...e, evidenceType: ["ASSUMED", "UNKNOWN"].includes(e.evidenceType) ? e.evidenceType : "INFERRED", confidence: capConfidence(e.confidence, "LOW"), sourceIds: [] }));
       const sourceIds = [...new Set(validRefs.map((r) => refMap.get(r)))];
       opportunities.push({
