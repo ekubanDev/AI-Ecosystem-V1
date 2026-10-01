@@ -16,7 +16,7 @@ const inputSchema = z.object({
   constraints: z.record(z.string(), z.unknown()).optional(),
 });
 
-const queriesSchema = z.object({ queries: z.array(z.string().trim().min(3)).min(1).max(8) });
+const queriesSchema = z.object({ queries: z.array(z.string().trim().min(3)).min(1).max(30) }); // the agent keeps only the first few; a hard cap here failed whole runs when the model over-delivered
 
 const candidateSchema = z.object({
   name: z.string().trim().min(1).max(200),

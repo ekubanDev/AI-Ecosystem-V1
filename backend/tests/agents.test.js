@@ -197,6 +197,15 @@ describe("failure handling, retries and human review", () => {
     assert.match((await models.AgentRun.findOne({ taskId: id2 })).error, /schema validation/);
   });
 
+  it("does not fail a run when the model returns more search queries than the agent uses", async () => {
+    // Live gpt-4.1-mini returned 7+ queries and the old max(6) schema failed whole Competitor runs.
+    ctx.provider.responder = (_label, prompt) => (/search queries/i.test(prompt) ? { queries: Array.from({ length: 12 }, (_, i) => `query number ${i + 1}`) } : undefined);
+    const id = await queue();
+    await ctx.container.worker.drain();
+    assert.equal((await task(id)).status, "COMPLETED");
+    assert.equal(await models.AgentRun.countDocuments({ taskId: id, status: "FAILED" }), 0);
+  });
+
   it("times out slow agents (AGENT_TIMEOUT) and treats it as transient", async () => {
     ctx.config.AGENT_TIMEOUT_MS = 1000;
     ctx.config.MAX_AGENT_RETRIES = 0;

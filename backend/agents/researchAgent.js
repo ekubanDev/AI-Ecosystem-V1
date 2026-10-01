@@ -14,7 +14,7 @@ const inputSchema = z.object({
   existingSources: z.array(z.object({ sourceId: z.string(), url: z.string() })).max(20).default([]),
 });
 
-const queriesSchema = z.object({ queries: z.array(z.string().trim().min(3)).min(1).max(6) });
+const queriesSchema = z.object({ queries: z.array(z.string().trim().min(3)).min(1).max(30) }); // the agent keeps only the first few; a hard cap here failed whole runs when the model over-delivered
 
 const llmSchema = z.object({
   marketEvidence: z.array(llmEvidenceItem).default([]),
