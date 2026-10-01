@@ -6,7 +6,7 @@ AI Business Factory: a system that discovers online business opportunities, gath
 
 | Path | What it is |
 |---|---|
-| `backend/` | Express 5 + Mongoose 9 API, agent framework, task worker (ESM, Node ≥ 20) |
+| `backend/` | Express 5 + Mongoose 9 API, agent framework, task worker (ESM, Node ≥ 22) |
 | `frontend/` | React 19 + MUI v9 + React Router + TanStack Query, built with Vite |
 | `e2e/` | Playwright browser suite (real Chromium, real API, **fake** AI/search/email) |
 | `scripts/dev.mjs` | `setup` / `start` / `test` helper (also `npm run setup\|dev\|test` at the root) |

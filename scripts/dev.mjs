@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Local development helper (cross-platform; Node >= 20, no dependencies).
+// Local development helper (cross-platform; Node >= 22, no dependencies).
 //
 //   node scripts/dev.mjs setup [--owner you@example.com]   install deps, create backend/.env, make sure MongoDB is up, seed an OWNER
 //   node scripts/dev.mjs start                              run API (+ in-process worker) and frontend dev server together
@@ -42,7 +42,7 @@ function readEnv() {
 
 function checkNode() {
   const major = Number(process.versions.node.split(".")[0]);
-  if (major < 20) die(`Node 20 or newer is required (you have ${process.versions.node}).`);
+  if (major < 22) die(`Node 22 or newer (try: nvm install 22) is required (you have ${process.versions.node}).`);
 }
 
 function createEnvFile() {

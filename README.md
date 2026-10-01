@@ -14,7 +14,7 @@ This repository contains **Backend Implementation v0.1** and the **React fronten
 
 ## Quick start
 
-Fastest path (Node ≥ 20; uses Docker for MongoDB only if none is running):
+Fastest path (Node ≥ 22; uses Docker for MongoDB only if none is running):
 
 ```bash
 node scripts/dev.mjs setup --owner you@example.com   # prints a one-time password; never overwrites backend/.env (re-running --owner for the same email resets that account's password)
