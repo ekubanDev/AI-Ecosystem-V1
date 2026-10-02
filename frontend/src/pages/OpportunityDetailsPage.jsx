@@ -8,7 +8,7 @@ import { Link as RouterLink, useNavigate, useParams, useSearchParams } from "rea
 import { agents as agentsApi, audit as auditApi, opportunities as api } from "../api/endpoints.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { RunDetailDialog, SourceLink, TaskRunsDialog, TaskTable } from "../components/agentViews.jsx";
-import { ConfidenceChip, EvidenceTypeChip, ExperimentStatusChip, OpportunityStatusChip } from "../components/chips.jsx";
+import { ConfidenceChip, EvidenceQualityChips, EvidenceTypeChip, ExperimentStatusChip, OpportunityStatusChip } from "../components/chips.jsx";
 import { ActionDialog, Empty, ErrorAlert, Loading } from "../components/common.jsx";
 import { ExperimentDialog, ExperimentFormDialog } from "../components/experiments.jsx";
 import { describeActor, describeAuditEvent } from "../utils/audit.js";
@@ -336,6 +336,7 @@ export default function OpportunityDetailsPage() {
         {["RESEARCHING", "ANALYZING"].includes(o.status) && <Typography variant="caption" sx={{ color: "text.secondary" }}>analysis in progress…</Typography>}
       </Stack>
       <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>{[o.category, o.targetCustomer?.geography].filter(Boolean).join(" · ")} · discovered {formatDate(o.createdAt)}</Typography>
+      <Box sx={{ mb: 2 }}><EvidenceQualityChips opportunity={o} /></Box>
       {o.status === "AWAITING_APPROVAL" && can("opportunities:approve") && (
         <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={() => setTab("decision")}>Review &amp; decide</Button>}>Analysis is done and this opportunity is waiting for your decision.</Alert>
       )}

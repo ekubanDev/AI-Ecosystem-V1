@@ -1,4 +1,5 @@
-import { Chip, Tooltip } from "@mui/material";
+import { Chip, Stack, Tooltip } from "@mui/material";
+import { evidenceQuality } from "../utils/evidenceQuality.js";
 import { humanize } from "../utils/format.js";
 
 const OPP_COLORS = {
@@ -41,4 +42,28 @@ export function EvidenceTypeChip({ type }) {
 export function ConfidenceChip({ confidence }) {
   const color = { HIGH: "success", MEDIUM: "info", LOW: "warning" }[confidence] ?? "default";
   return <Chip size="small" variant="outlined" color={color} label={`${humanize(confidence ?? "UNKNOWN")} confidence`} />;
+}
+
+/** At-a-glance evidence quality as counts (never a single score), so weak opportunities are visible before anyone approves them. */
+export function EvidenceQualityChips({ opportunity }) {
+  const q = evidenceQuality(opportunity);
+  if (!q.total) return <Chip size="small" variant="outlined" color="warning" label="No evidence recorded" />;
+  const share = Math.round(q.sourcedShare * 100);
+  const weak = share < 60 || q.sources < 3;
+  return (
+    <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }} aria-label="Evidence quality">
+      <Tooltip title="Claims labelled VERIFIED or SUPPORTED that cite a stored source">
+        <Chip size="small" color={weak ? "warning" : "success"} variant="outlined" label={`${q.sourced} of ${q.total} claims sourced (${share}%)`} />
+      </Tooltip>
+      <Tooltip title="Inferred, estimated, assumed or unknown: AI reasoning, not sourced fact">
+        <Chip size="small" variant="outlined" label={`${q.guessed} inferred or assumed`} />
+      </Tooltip>
+      <Chip size="small" variant="outlined" label={`${q.sources} source${q.sources === 1 ? "" : "s"}`} />
+      {q.downgraded > 0 && (
+        <Tooltip title="Claims the agents labelled as sourced, but whose citation was missing or did not support them; they were downgraded to inferred">
+          <Chip size="small" color="warning" variant="outlined" label={`${q.downgraded} downgraded`} />
+        </Tooltip>
+      )}
+    </Stack>
+  );
 }
