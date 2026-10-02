@@ -16,8 +16,8 @@ AI Business Factory: a system that discovers online business opportunities, gath
 ```bash
 node scripts/dev.mjs setup --owner you@example.com   # deps, backend/.env (generated JWT secrets), MongoDB (Docker if needed), OWNER
 npm run dev                                           # API :3001 (+ in-process worker) and frontend :3000
-cd backend && npm test                                # 110 tests; needs MongoDB (TEST_MONGODB_URI, default 127.0.0.1:27017)
-cd frontend && npm test && npm run build              # 14 unit tests; build must pass
+cd backend && npm test                                # 119 tests; needs MongoDB (TEST_MONGODB_URI, default 127.0.0.1:27017)
+cd frontend && npm test && npm run build              # 17 unit tests; build must pass
 cd e2e && npm test                                    # 22 browser scenarios; needs `frontend` built first
 ```
 CI (`.github/workflows/ci.yml`) runs backend (real `mongo:7`), frontend and e2e. **Run all three suites for any change that touches more than one layer; run e2e for any UI change.**
