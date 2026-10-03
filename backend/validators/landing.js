@@ -40,3 +40,5 @@ export const updateLead = z
   .object({ status: z.enum(LEAD_STATUSES).optional(), notes: z.string().trim().max(2000).optional() })
   .strict()
   .refine((v) => Object.keys(v).length > 0, "At least one field is required");
+
+export const recordView = z.object({ source: z.string().trim().toLowerCase().max(100).optional() }).strict();

@@ -1,5 +1,5 @@
 import { LANDING_STATUSES } from "../models/constants.js";
-import { Lead, Opportunity } from "../models/index.js";
+import { LandingStat, Lead, Opportunity } from "../models/index.js";
 import { AppError, notFound } from "../utils/errors.js";
 import { actorFromReq, audit } from "./auditService.js";
 
@@ -90,4 +90,57 @@ export async function deleteLead(id, req) {
   if (!lead) throw notFound("Lead");
   await audit({ actor: actorFromReq(req), action: "LEAD_DELETED", resourceType: "Lead", resourceId: lead._id, metadata: { opportunityId: String(lead.opportunityId) }, req });
   return { deleted: true };
+}
+
+const dayOf = (d = new Date()) => d.toISOString().slice(0, 10);
+
+/** Public: counts one view of a *published* page. Counters only: nothing identifying the visitor is stored. */
+export async function recordView(slug, { source } = {}) {
+  const opp = await publicOpportunity(slug);
+  await LandingStat.updateOne(
+    { opportunityId: opp._id, day: dayOf(), source: source ?? "" },
+    { $inc: { views: 1 }, $set: { lastViewAt: new Date() } },
+    { upsert: true }
+  );
+  return { recorded: true };
+}
+
+const STAT_DAYS = 30;
+
+/**
+ * Views, leads and conversion for one opportunity's landing page. Views and leads are matched by day and source here,
+ * not stored together, so a lead from before view counting began has no matching view: the rate is capped at 100%.
+ */
+export async function getLandingStats(opportunityId) {
+  const opp = await Opportunity.findOne({ _id: opportunityId, isDeleted: { $ne: true } }).select("_id");
+  if (!opp) throw notFound("Opportunity");
+  const since = dayOf(new Date(Date.now() - (STAT_DAYS - 1) * 86400000));
+  const [totals, viewDays, viewSources, leads, leadDays, leadSources] = await Promise.all([
+    LandingStat.aggregate([{ $match: { opportunityId: opp._id } }, { $group: { _id: null, views: { $sum: "$views" }, last: { $max: "$lastViewAt" } } }]),
+    LandingStat.aggregate([{ $match: { opportunityId: opp._id, day: { $gte: since } } }, { $group: { _id: "$day", views: { $sum: "$views" } } }]),
+    LandingStat.aggregate([{ $match: { opportunityId: opp._id } }, { $group: { _id: "$source", views: { $sum: "$views" } } }]),
+    Lead.countDocuments({ opportunityId: opp._id }),
+    Lead.aggregate([{ $match: { opportunityId: opp._id, createdAt: { $gte: new Date(`${since}T00:00:00Z`) } } }, { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "UTC" } }, leads: { $sum: 1 } } }]),
+    Lead.aggregate([{ $match: { opportunityId: opp._id } }, { $group: { _id: { $ifNull: ["$source", ""] }, leads: { $sum: 1 } } }]),
+  ]);
+  const views = totals[0]?.views ?? 0;
+
+  const byDay = [];
+  const vd = new Map(viewDays.map((r) => [r._id, r.views]));
+  const ld = new Map(leadDays.map((r) => [r._id, r.leads]));
+  for (let i = STAT_DAYS - 1; i >= 0; i--) {
+    const day = dayOf(new Date(Date.now() - i * 86400000));
+    byDay.push({ day, views: vd.get(day) ?? 0, leads: ld.get(day) ?? 0 });
+  }
+  const sources = new Map();
+  for (const r of viewSources) sources.set(r._id, { source: r._id, views: r.views, leads: 0 });
+  for (const r of leadSources) sources.set(r._id, { source: r._id, views: sources.get(r._id)?.views ?? 0, leads: r.leads });
+
+  return {
+    views, leads,
+    conversionRate: views > 0 ? Math.round(Math.min(1, leads / views) * 10000) / 10000 : null,
+    lastViewAt: totals[0]?.last ?? null,
+    byDay,
+    bySource: [...sources.values()].sort((a, b) => b.views + b.leads - (a.views + a.leads)),
+  };
 }

@@ -3,6 +3,7 @@ import { Delete } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { leads as leadsApi, opportunities as oppApi } from "../api/endpoints.js";
+import { conversionLabel, lowSample } from "../utils/landingStats.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { ActionDialog, Empty, ErrorAlert, Loading, ServerPagination } from "./common.jsx";
 import { formatDate, humanize } from "../utils/format.js";
@@ -45,6 +46,52 @@ function Editor({ o }) {
         {l.enabled && <Typography variant="body2">Live at <a href={url} target="_blank" rel="noreferrer">{url}</a></Typography>}
       </Stack>
     </Stack>
+  );
+}
+
+function Stat({ label, value, hint }) {
+  return (
+    <Stack role="group" aria-label={label} sx={{ border: 1, borderColor: "divider", borderRadius: 1, px: 2, py: 1.5, minWidth: 130 }}>
+      <Typography variant="caption" sx={{ color: "text.secondary" }}>{label}</Typography>
+      <Typography variant="h5" component="p" sx={{ fontWeight: 600 }}>{value}</Typography>
+      {hint && <Typography variant="caption" sx={{ color: "text.secondary" }}>{hint}</Typography>}
+    </Stack>
+  );
+}
+
+function Results({ o }) {
+  const q = useQuery({ queryKey: ["landing-stats", o.id], queryFn: () => oppApi.landingStats(o.id), refetchInterval: 30000 });
+  if (q.isPending) return <Loading />;
+  if (q.error) return <ErrorAlert error={q.error} onRetry={q.refetch} sx={{ mb: 3 }} />;
+  const s = q.data;
+  if (!s.views && !s.leads && !o.landing?.enabled) return null;
+  const days = s.byDay.filter((d) => d.views || d.leads).slice(-14).reverse();
+  return (
+    <section style={{ marginBottom: 32 }}>
+      <Typography variant="h6" component="h2" sx={{ mb: 1 }}>Results</Typography>
+      <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: "wrap", mb: 2 }}>
+        <Stat label="Page views" value={s.views} />
+        <Stat label="Leads" value={s.leads} />
+        <Stat label="Conversion" value={conversionLabel(s)} hint="leads ÷ views" />
+        <Stat label="Last view" value={s.lastViewAt ? formatDate(s.lastViewAt) : "—"} />
+      </Stack>
+      {lowSample(s) && <Alert severity="warning" sx={{ mb: 2 }}>Fewer than 30 views so far: treat the conversion rate as a rough signal, not a result.</Alert>}
+      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+        Views are counted without cookies or visitor IDs, so a refresh counts again and bots are included. A lead is interest, not demand: the experiment's real test is how many commit to pay.
+      </Typography>
+      {days.length > 0 && (
+        <Table size="small" sx={{ maxWidth: 520, mb: 2 }} aria-label="Views and leads by day">
+          <TableHead><TableRow><TableCell>Day (UTC)</TableCell><TableCell align="right">Views</TableCell><TableCell align="right">Leads</TableCell></TableRow></TableHead>
+          <TableBody>{days.map((d) => <TableRow key={d.day}><TableCell>{d.day}</TableCell><TableCell align="right">{d.views}</TableCell><TableCell align="right">{d.leads}</TableCell></TableRow>)}</TableBody>
+        </Table>
+      )}
+      {s.bySource.length > 0 && (
+        <Table size="small" sx={{ maxWidth: 520 }} aria-label="Views and leads by source">
+          <TableHead><TableRow><TableCell>Source</TableCell><TableCell align="right">Views</TableCell><TableCell align="right">Leads</TableCell></TableRow></TableHead>
+          <TableBody>{s.bySource.map((r) => <TableRow key={r.source || "direct"}><TableCell>{r.source || "(direct)"}</TableCell><TableCell align="right">{r.views}</TableCell><TableCell align="right">{r.leads}</TableCell></TableRow>)}</TableBody>
+        </Table>
+      )}
+    </section>
   );
 }
 
@@ -113,6 +160,7 @@ export function LandingTab({ o }) {
       {can("landing:publish")
         ? <Editor o={o} />
         : <Alert severity="info" sx={{ mb: 3 }}>{o.landing?.enabled ? "This page is published." : "This page is not published."} Only an owner or admin can edit or publish it.</Alert>}
+      <Results o={o} />
       {can("leads:read") ? <Leads o={o} /> : <Empty>You do not have access to leads.</Empty>}
     </>
   );

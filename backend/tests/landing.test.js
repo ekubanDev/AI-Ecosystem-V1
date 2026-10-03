@@ -149,3 +149,65 @@ describe("lead form rate limit", () => {
     assert.equal((await request(app).post("/leads").expect(429)).body.error.code, "RATE_LIMIT_EXCEEDED");
   });
 });
+
+describe("landing analytics", () => {
+  const stats = async (user = viewer) => (await as(ctx, user).get(`/api/opportunities/${opp.id}/landing-stats`).expect(200)).body.data;
+
+  it("counts views of a published page only, with a source tag, and 404s for unpublished or unknown pages", async () => {
+    const before = await stats();
+    await anon().post(`${page(opp.slug)}/view`).send({}).expect(202);
+    await anon().post(`${page(opp.slug)}/view`).send({ source: "WhatsApp" }).expect(202);
+    await anon().post(`${page(opp.slug)}/view`).send({ source: "whatsapp" }).expect(202);
+    const after = await stats();
+    assert.equal(after.views, before.views + 3);
+    assert.equal(after.bySource.find((s) => s.source === "whatsapp").views, 2, "source is normalized to lower case");
+    assert.ok(after.lastViewAt);
+
+    await anon().post(`${page("no-such-page")}/view`).send({}).expect(404);
+    await as(ctx, admin).put(`/api/opportunities/${opp.id}/landing`).send({ enabled: false }).expect(200);
+    await anon().post(`${page(opp.slug)}/view`).send({}).expect(404);
+    assert.equal((await stats()).views, after.views, "an unpublished page records nothing");
+    await as(ctx, admin).put(`/api/opportunities/${opp.id}/landing`).send({ enabled: true, headline: "Find reliable suppliers in Ghana" }).expect(200);
+  });
+
+  it("rejects unknown fields (422) so the endpoint cannot be used to smuggle identifiers in", async () => {
+    await anon().post(`${page(opp.slug)}/view`).send({ visitorId: "abc" }).expect(422);
+    await anon().post(`${page(opp.slug)}/view`).send({ source: "x".repeat(101) }).expect(422);
+  });
+
+  it("stores counters only: no IP address, user agent or visitor id", async () => {
+    const row = (await models.LandingStat.findOne({ opportunityId: opp.id }).lean());
+    assert.deepEqual(Object.keys(row).sort(), ["__v", "_id", "day", "lastViewAt", "opportunityId", "source", "views"].filter((k) => k in row).sort());
+    assert.doesNotMatch(JSON.stringify(row), /ip|agent|visitor|cookie/i);
+  });
+
+  it("reports views, leads and conversion (capped at 100%), by day and by source; readable by every role, not anonymously", async () => {
+    await ctx.http.get(`/api/opportunities/${opp.id}/landing-stats`).expect(401);
+    const s = await stats(analyst);
+    assert.ok(s.views >= 3);
+    assert.equal(s.leads, await models.Lead.countDocuments({ opportunityId: opp.id }));
+    assert.equal(s.conversionRate, Math.round(Math.min(1, s.leads / s.views) * 10000) / 10000);
+    assert.equal(s.byDay.length, 30);
+    const today = s.byDay.at(-1);
+    assert.equal(today.day, new Date().toISOString().slice(0, 10));
+    assert.equal(today.views, s.views);
+    assert.equal(s.byDay.reduce((n, d) => n + d.leads, 0), s.leads);
+  });
+
+  it("gives null conversion when there are no views yet, and 404 for an unknown opportunity", async () => {
+    const fresh = await makeOpportunity(ctx, analyst, { name: "No Views Yet" }, "APPROVED");
+    const s = (await as(ctx, viewer).get(`/api/opportunities/${fresh.id}/landing-stats`).expect(200)).body.data;
+    assert.deepEqual([s.views, s.leads, s.conversionRate, s.lastViewAt], [0, 0, null, null]);
+    await as(ctx, viewer).get("/api/opportunities/66f123456789abcdef123456/landing-stats").expect(404);
+  });
+
+  it("rate-limits view pings per address (429)", async () => {
+    const { viewLimiter } = await import("../middleware/rateLimit.js");
+    const app = express();
+    app.post("/v", viewLimiter({ RATE_LIMIT_ENABLED: true, VIEW_RATE_LIMIT_MAX: 2 }), (_req, res) => res.status(202).json({ ok: true }));
+    app.use(errorHandler);
+    await request(app).post("/v").expect(202);
+    await request(app).post("/v").expect(202);
+    await request(app).post("/v").expect(429);
+  });
+});

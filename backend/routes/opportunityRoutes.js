@@ -21,5 +21,6 @@ r.post("/:id/approve", requireCapability("opportunities:approve"), validate({ pa
 r.post("/:id/reject", requireCapability("opportunities:approve"), validate({ params: idParam, body: v.rejectBody }), c.reject);
 r.post("/:id/pause", requireCapability("opportunities:approve"), validate({ params: idParam, body: v.decisionBody }), c.pause);
 r.post("/:id/resume", requireCapability("opportunities:approve"), validate({ params: idParam }), c.resume);
+r.get("/:id/landing-stats", requireCapability("opportunities:read"), validate({ params: idParam }), landing.stats);
 r.put("/:id/landing", requireCapability("landing:publish"), validate({ params: idParam, body: lv.updateLanding }), landing.updateLanding);
 export default r;
