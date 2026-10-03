@@ -8,6 +8,7 @@ import * as v from "../validators/auth.js";
 export default function authRoutes(authLimiter) {
   const r = Router();
   r.use(authLimiter);
+  r.get("/config", c.publicConfig);
   r.post("/register", validate({ body: v.register }), c.register);
   r.post("/login", validate({ body: v.login }), c.login);
   r.post("/logout", requireAllowedOrigin, c.logout);

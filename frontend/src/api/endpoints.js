@@ -8,6 +8,7 @@ const list = async (url, params) => {
 const one = async (p) => (await p).data;
 
 export const auth = {
+  config: () => one(get("/auth/config")),
   login: (body) => one(post("/auth/login", body)),
   register: (body) => one(post("/auth/register", body)),
   logout: () => one(post("/auth/logout")),

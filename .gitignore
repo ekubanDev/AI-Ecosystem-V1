@@ -9,3 +9,7 @@ coverage/
 
 # Local Claude Code settings and permission rules (per machine)
 .claude/
+
+# Production secrets (never commit)
+backend/.env.production
+docker/.env

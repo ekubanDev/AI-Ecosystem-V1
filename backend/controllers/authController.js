@@ -1,3 +1,4 @@
+import { getConfig } from "../config/env.js";
 import { User } from "../models/index.js";
 import { REFRESH_COOKIE, refreshCookieOptions } from "../services/authService.js";
 import { AppError } from "../utils/errors.js";
@@ -11,6 +12,7 @@ const sendSession = (res, session, status = 200) => {
   return ok(res, { accessToken: session.accessToken, user: session.user }, { status });
 };
 
+export const publicConfig = async (_req, res) => ok(res, { registrationEnabled: getConfig().REGISTRATION_ENABLED });
 export const register = async (req, res) => ok(res, { user: await svc(req).register(req.valid.body, req) }, { status: 201 });
 export const login = async (req, res) => sendSession(res, await svc(req).login(req.valid.body, req));
 

@@ -1,9 +1,16 @@
 import { Alert, Box, Button, Card, CardContent, Link, Stack, TextField, Typography } from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { auth as authApi } from "../api/endpoints.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { ErrorAlert, Loading } from "../components/common.jsx";
+
+/** Whether public sign-up is open. Unknown (still loading or the call failed) counts as open: the server enforces it either way. */
+function useRegistrationOpen() {
+  const q = useQuery({ queryKey: ["auth-config"], queryFn: authApi.config, staleTime: 5 * 60 * 1000, retry: false });
+  return q.data?.registrationEnabled !== false;
+}
 
 function Shell({ title, children }) {
   return (
@@ -40,6 +47,7 @@ function useSubmit(fn) {
 }
 
 export function LoginPage() {
+  const registrationOpen = useRegistrationOpen();
   const { login } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
@@ -73,7 +81,7 @@ export function LoginPage() {
           <Button type="submit" variant="contained" size="large" disabled={busy || !form.email || !form.password}>{busy ? "Logging in…" : "Log in"}</Button>
           <Stack direction="row" sx={{ justifyContent: "space-between" }}>
             <Link component={RouterLink} to="/forgot-password" variant="body2">Forgot password?</Link>
-            <Link component={RouterLink} to="/register" variant="body2">Create account</Link>
+            {registrationOpen && <Link component={RouterLink} to="/register" variant="body2">Create account</Link>}
           </Stack>
         </Stack>
       </Box>
@@ -82,6 +90,7 @@ export function LoginPage() {
 }
 
 export function RegisterPage() {
+  const registrationOpen = useRegistrationOpen();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [done, setDone] = useState(false);
   const { busy, error, submit } = useSubmit(async () => {
@@ -90,6 +99,13 @@ export function RegisterPage() {
   });
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
+  if (!registrationOpen)
+    return (
+      <Shell title="Registration is closed">
+        <Typography sx={{ mb: 2 }}>New accounts are not being accepted right now. If you should have access, ask the owner to set up your account.</Typography>
+        <Button component={RouterLink} to="/login" variant="contained">Go to log in</Button>
+      </Shell>
+    );
   if (done)
     return (
       <Shell title="Check your email">
