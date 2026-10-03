@@ -14,3 +14,4 @@ const make = (config, max, windowMs) =>
 
 export const globalLimiter = (config) => make(config, config.RATE_LIMIT_MAX, 15 * 60 * 1000);
 export const authLimiter = (config) => make(config, config.AUTH_RATE_LIMIT_MAX, 15 * 60 * 1000);
+export const leadLimiter = (config) => make(config, config.LEAD_RATE_LIMIT_MAX, 15 * 60 * 1000);

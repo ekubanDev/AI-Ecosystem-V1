@@ -80,6 +80,7 @@ export const request = async (method, url, { params, body, headers } = {}) => (a
 export const get = (url, params) => request("get", url, { params });
 export const post = (url, body, opts) => request("post", url, { body, ...opts });
 export const patch = (url, body) => request("patch", url, { body });
+export const put = (url, body) => request("put", url, { body });
 export const del = (url) => request("delete", url);
 
 /** Drops empty filter values so they don't reach the server as `status=`. */

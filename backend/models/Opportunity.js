@@ -20,6 +20,17 @@ const schema = new mongoose.Schema(
     problem: { ...str, maxlength: 5000 },
     proposedSolution: { ...str, maxlength: 5000 },
 
+    // Public landing page for demand validation. Off by default; only OWNER/ADMIN can turn it on (landing:publish).
+    landing: {
+      enabled: { type: Boolean, default: false },
+      headline: { ...str, maxlength: 120 },
+      subheadline: { ...str, maxlength: 300 },
+      bullets: [{ ...str, maxlength: 160 }],
+      ctaLabel: { ...str, maxlength: 40 },
+      updatedAt: Date,
+      updatedBy: { type: ObjectId, ref: "User" },
+    },
+
     businessModel: {
       type: { type: String, enum: BUSINESS_MODEL_TYPES },
       revenueMechanism: str,

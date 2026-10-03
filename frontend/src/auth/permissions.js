@@ -6,6 +6,9 @@ const CAPABILITIES = {
   "agents:runDirect": ["OWNER", "ADMIN"],
   "experiments:write": ["OWNER", "ADMIN", "ANALYST"],
   "experiments:approve": ["OWNER", "ADMIN"],
+  "landing:publish": ["OWNER", "ADMIN"],
+  "leads:read": ["OWNER", "ADMIN", "ANALYST"],
+  "leads:write": ["OWNER", "ADMIN", "ANALYST"],
   "users:manage": ["OWNER", "ADMIN"],
   "audit:read": ["OWNER", "ADMIN"],
 };

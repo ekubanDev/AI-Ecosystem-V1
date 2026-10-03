@@ -1,9 +1,11 @@
 import { Router } from "express";
+import * as landing from "../controllers/landingController.js";
 import * as c from "../controllers/opportunityController.js";
 import { protect, requireCapability } from "../middleware/auth.js";
 import { idempotent } from "../middleware/idempotency.js";
 import { validate } from "../middleware/validate.js";
 import { idParam } from "../validators/common.js";
+import * as lv from "../validators/landing.js";
 import * as v from "../validators/opportunity.js";
 
 const r = Router();
@@ -18,4 +20,5 @@ r.post("/:id/approve", requireCapability("opportunities:approve"), validate({ pa
 r.post("/:id/reject", requireCapability("opportunities:approve"), validate({ params: idParam, body: v.rejectBody }), c.reject);
 r.post("/:id/pause", requireCapability("opportunities:approve"), validate({ params: idParam, body: v.decisionBody }), c.pause);
 r.post("/:id/resume", requireCapability("opportunities:approve"), validate({ params: idParam }), c.resume);
+r.put("/:id/landing", requireCapability("landing:publish"), validate({ params: idParam, body: lv.updateLanding }), landing.updateLanding);
 export default r;

@@ -4,7 +4,7 @@ import express from "express";
 import helmet from "helmet";
 import mongoose from "mongoose";
 import { errorHandler, notFoundHandler } from "./middleware/errorMiddleware.js";
-import { authLimiter, globalLimiter } from "./middleware/rateLimit.js";
+import { authLimiter, globalLimiter, leadLimiter } from "./middleware/rateLimit.js";
 import { requestId } from "./middleware/requestId.js";
 import { requestLogger } from "./middleware/requestLogger.js";
 import agentRoutes from "./routes/agentRoutes.js";
@@ -13,7 +13,9 @@ import authRoutes from "./routes/authRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import discoveryRoutes from "./routes/discoveryRoutes.js";
 import experimentRoutes from "./routes/experimentRoutes.js";
+import leadRoutes from "./routes/leadRoutes.js";
 import opportunityRoutes from "./routes/opportunityRoutes.js";
+import publicRoutes from "./routes/publicRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 
 export function createApp(container) {
@@ -50,6 +52,8 @@ export function createApp(container) {
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/audit", auditRoutes);
+  app.use("/api/leads", leadRoutes);
+  app.use("/api/public", publicRoutes(leadLimiter(config)));
 
   app.use(notFoundHandler);
   app.use(errorHandler);
