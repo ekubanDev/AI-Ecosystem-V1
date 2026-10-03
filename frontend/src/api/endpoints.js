@@ -37,6 +37,7 @@ export const opportunities = {
   pause: (id, note) => one(post(`/opportunities/${id}/pause`, note ? { note } : {})),
   resume: (id) => one(post(`/opportunities/${id}/resume`)),
   generateBlueprint: (id, key) => one(post(`/opportunities/${id}/blueprint`, undefined, { headers: idempotencyHeaders(key) })),
+  landingStats: (id) => one(get(`/opportunities/${id}/landing-stats`)),
   updateLanding: (id, body) => one(put(`/opportunities/${id}/landing`, body)),
 };
 
@@ -50,6 +51,7 @@ export const leads = {
 export const publicPages = {
   get: (slug) => one(get(`/public/landing/${slug}`)),
   submitLead: (slug, body) => one(post(`/public/landing/${slug}/leads`, body)),
+  recordView: (slug, body) => one(post(`/public/landing/${slug}/view`, body ?? {})),
 };
 
 export const discovery = {

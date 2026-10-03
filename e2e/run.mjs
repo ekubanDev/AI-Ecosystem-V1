@@ -230,6 +230,10 @@ await step("landing page: publish → visitor registers interest → lead appear
   await a.reload();
   await a.getByRole("tab", { name: "Landing page & leads" }).click();
   await a.getByRole("row", { name: /Visitor Vera.*vera@example\.com/ }).waitFor();
+  await a.getByRole("group", { name: "Page views" }).getByText("1", { exact: true }).waitFor(); // the visitor's one view
+  await a.getByRole("group", { name: "Conversion" }).getByText("100%").waitFor(); // 1 lead / 1 view
+  await a.getByText(/Fewer than 30 views/).waitFor();
+  await shot(a, "17-landing-results");
   await a.getByRole("button", { name: "Delete Visitor Vera" }).click();
   await a.getByRole("dialog").getByRole("button", { name: "Delete permanently" }).click();
   await a.getByText("No leads yet.").waitFor();
