@@ -1,7 +1,7 @@
 import { CheckCircle } from "@mui/icons-material";
 import { Alert, Box, Button, Checkbox, Container, FormControlLabel, FormHelperText, List, ListItem, ListItemIcon, ListItemText, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { publicPages } from "../api/endpoints.js";
 import { ErrorAlert, Loading } from "../components/common.jsx";
@@ -17,6 +17,19 @@ export default function PublicLandingPage() {
   const [values, setValues] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const submit = useMutation({ mutationFn: (body) => publicPages.submitLead(slug, body) });
+
+  // One view per browser tab session. Counters only: nothing identifying the visitor is sent or stored.
+  const loaded = Boolean(page.data);
+  useEffect(() => {
+    if (!loaded) return;
+    const key = `abf:viewed:${slug}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch { /* storage blocked: count the view anyway */ }
+    const source = (params.get("utm_source") || params.get("source") || "").slice(0, 100);
+    publicPages.recordView(slug, source ? { source } : {}).catch(() => {}); // analytics must never get in the visitor's way
+  }, [loaded, slug, params]);
 
   if (page.isPending) return <Loading />;
   if (page.error) {
