@@ -16,9 +16,9 @@ AI Business Factory: a system that discovers online business opportunities, gath
 ```bash
 node scripts/dev.mjs setup --owner you@example.com   # deps, backend/.env (generated JWT secrets), MongoDB (Docker if needed), OWNER
 npm run dev                                           # API :3001 (+ in-process worker) and frontend :3000
-cd backend && npm test                                # 119 tests; needs MongoDB (TEST_MONGODB_URI, default 127.0.0.1:27017)
-cd frontend && npm test && npm run build              # 17 unit tests; build must pass
-cd e2e && npm test                                    # 22 browser scenarios; needs `frontend` built first
+cd backend && npm test                                # 132 tests; needs MongoDB (TEST_MONGODB_URI, default 127.0.0.1:27017)
+cd frontend && npm test && npm run build              # 20 unit tests; build must pass
+cd e2e && npm test                                    # 23 browser scenarios; needs `frontend` built first AND ports 3000-3002 free (stop any dev servers)
 ```
 CI (`.github/workflows/ci.yml`) runs backend (real `mongo:7`), frontend and e2e. **Run all three suites for any change that touches more than one layer; run e2e for any UI change.**
 
@@ -29,6 +29,7 @@ CI (`.github/workflows/ci.yml`) runs backend (real `mongo:7`), frontend and e2e.
 - **Layers:** `routes` → `middleware` (auth, `requireCapability`, `validate`, `idempotent`) → `controllers` (thin) → `services` → `models`. Validation is zod; parsed input is on `req.valid.{body,query,params}` (never read `req.body` after `validate`). Permissions: `backend/config/permissions.js` (mirrored in `frontend/src/auth/permissions.js` for showing/hiding buttons only; the server is the enforcer).
 - **Responses:** `{ success, data, meta: { requestId, pagination? } }`; errors `{ success:false, error:{ code, message, details } }` (codes in `utils/errors.js`). Validation is 422, bad state 409.
 - **Auth:** 15-min access JWT (memory only in the UI) + rotating HttpOnly refresh cookie (old refresh tokens die atomically; one session per user). The UI needs **one origin for app and `/api`** (Vite proxies in dev/preview; nginx in prod).
+- **Public surface:** only `/api/public/landing/:slug` (read one *published* page) and `.../leads` (honeypot, consent required, rate-limited). Leads are personal data: `leads:*` excludes VIEWER, audit events carry ids only, and deleting a lead is a real delete (the consent text promises it). Publishing a page needs `landing:publish` (OWNER/ADMIN).
 - **Audit:** append-only `AuditEvent`s, readable by OWNER/ADMIN at `/api/audit` (UI: Audit log page, opportunity History tab). Audit writes are best-effort.
 
 ## The rule that matters most: evidence before conclusions

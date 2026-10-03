@@ -229,6 +229,7 @@ export const as = (ctx, user) => ({
   get: (u) => ctx.http.get(u).set("Authorization", `Bearer ${user.token}`),
   post: (u) => ctx.http.post(u).set("Authorization", `Bearer ${user.token}`),
   patch: (u) => ctx.http.patch(u).set("Authorization", `Bearer ${user.token}`),
+  put: (u) => ctx.http.put(u).set("Authorization", `Bearer ${user.token}`),
   delete: (u) => ctx.http.delete(u).set("Authorization", `Bearer ${user.token}`),
 });
 

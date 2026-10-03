@@ -1,4 +1,4 @@
-import { cleanParams, del, get, idempotencyHeaders, patch, post } from "./client.js";
+import { cleanParams, del, get, idempotencyHeaders, patch, post, put } from "./client.js";
 
 // List endpoints resolve to { items, pagination }; everything else to the unwrapped `data`.
 const list = async (url, params) => {
@@ -35,6 +35,19 @@ export const opportunities = {
   reject: (id, reason) => one(post(`/opportunities/${id}/reject`, { reason })),
   pause: (id, note) => one(post(`/opportunities/${id}/pause`, note ? { note } : {})),
   resume: (id) => one(post(`/opportunities/${id}/resume`)),
+  updateLanding: (id, body) => one(put(`/opportunities/${id}/landing`, body)),
+};
+
+export const leads = {
+  list: (params) => list("/leads", params),
+  update: (id, body) => one(patch(`/leads/${id}`, body)),
+  remove: (id) => one(del(`/leads/${id}`)),
+};
+
+// Unauthenticated: what a visitor to a published landing page uses.
+export const publicPages = {
+  get: (slug) => one(get(`/public/landing/${slug}`)),
+  submitLead: (slug, body) => one(post(`/public/landing/${slug}/leads`, body)),
 };
 
 export const discovery = {

@@ -197,6 +197,43 @@ await step("experiment: create → ready → start (budget) → record results",
   await a.getByRole("row", { name: /Landing page demand test.*Completed/ }).waitFor();
   await shot(a, "11-experiments");
 });
+await step("landing page: publish → visitor registers interest → lead appears → deleted on request", async () => {
+  const visitorCtx = await browser.newContext(); const v = await visitorCtx.newPage();
+  v.on("pageerror", (e) => errors.push(`[visitor] pageerror: ${e.message}`));
+  // Unpublished pages are not visible.
+  await v.goto(`${BASE}/p/procure-pilot`);
+  await v.getByRole("heading", { name: "This page is not available" }).waitFor();
+
+  await a.goto(`${BASE}/opportunities`);
+  await a.getByRole("link", { name: "Procure Pilot" }).first().click();
+  await a.getByRole("tab", { name: "Landing page & leads" }).click();
+  await a.getByLabel(/^Headline/).fill("Find reliable suppliers in Ghana");
+  await a.getByLabel(/^Bullet points/).fill("Verified profiles\nDirect contact");
+  await a.getByRole("switch", { name: /Not published/ }).check();
+  await a.getByRole("button", { name: "Save" }).click();
+  await a.getByText("Saved.").waitFor();
+  await shot(a, "14-landing-editor");
+
+  await v.goto(`${BASE}/p/procure-pilot`);
+  await v.getByRole("heading", { name: "Find reliable suppliers in Ghana" }).waitFor();
+  await v.getByText("Verified profiles").waitFor();
+  await v.getByLabel(/^Name/).fill("Visitor Vera");
+  await v.getByLabel(/^Email/).fill("vera@example.com");
+  await v.getByRole("button", { name: "Register my interest" }).click();
+  await v.getByText(/Please tick the box/).waitFor(); // consent is required
+  await v.getByRole("checkbox", { name: /I agree/ }).check();
+  await shot(v, "15-public-landing");
+  await v.getByRole("button", { name: "Register my interest" }).click();
+  await v.getByText(/Thank you/).waitFor();
+  await visitorCtx.close();
+
+  await a.reload();
+  await a.getByRole("tab", { name: "Landing page & leads" }).click();
+  await a.getByRole("row", { name: /Visitor Vera.*vera@example\.com/ }).waitFor();
+  await a.getByRole("button", { name: "Delete Visitor Vera" }).click();
+  await a.getByRole("dialog").getByRole("button", { name: "Delete permanently" }).click();
+  await a.getByText("No leads yet.").waitFor();
+});
 await step("users page: admin sees users, cannot edit owners/admins/self", async () => {
   await a.goto(`${BASE}/users`);
   await a.getByRole("heading", { name: "Users" }).waitFor();

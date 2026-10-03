@@ -35,6 +35,7 @@ const schema = z.object({
   RATE_LIMIT_ENABLED: bool(true),
   RATE_LIMIT_MAX: num(300),
   AUTH_RATE_LIMIT_MAX: num(20),
+  LEAD_RATE_LIMIT_MAX: num(10), // public lead form submissions per IP per 15 minutes
 
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
