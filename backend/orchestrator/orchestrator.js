@@ -65,7 +65,7 @@ export function createOrchestrator({ registry }) {
       businessModel: bm ? { ...bm.toObject(), _id: undefined, opportunityId: undefined } : null,
       analysis: opp.analysis?.assessment ? { assessment: opp.analysis.assessment, risks: opp.risks, validationPlan: opp.validationPlan } : null,
       competitors: comps.map((c) => ({ name: c.name, pricing: c.pricing, businessModel: c.businessModel, strengths: c.strengths, weaknesses: c.weaknesses })),
-      experiments: experiments.map((e) => ({ name: e.name, status: e.status, hypothesis: e.hypothesis, results: e.results, conclusion: e.conclusion })),
+      experiments: experiments.map((e) => ({ name: e.name, status: e.status, hypothesis: e.hypothesis, method: e.method, successCriteria: e.successCriteria, budget: e.budget, results: e.results, conclusion: e.conclusion })),
     };
   }
 

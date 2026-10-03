@@ -53,6 +53,9 @@ describe("Business Architect blueprint", () => {
     assert.equal(gated["Compile the first report"], false);
     assert.equal(gated["Run paid ads on social media"], true, "paid advertising always needs the owner");
     assert.equal(gated["Register the business name"], true, "legal steps always need the owner");
+    assert.match(b.assumptions.join(" "), /Needs your approval before it happens.*paid ad campaign/, "a paid step inside the manual plan is flagged too");
+    assert.doesNotMatch(b.assumptions.join(" "), /Needs your approval before it happens.*Compile prices/);
+    assert.doesNotMatch(b.assumptions.join(" "), /Needs your approval before it happens.*Log responses/, "the word payment inside a description is not a payment action");
     assert.match(b.uncertainties.join(" "), /trademarks has NOT been checked/);
     assert.match(b.uncertainties.join(" "), /No validation experiment has been completed/);
     assert.notEqual(b.confidence, "HIGH", "a plan never claims HIGH confidence");
@@ -81,5 +84,17 @@ describe("Business Architect blueprint", () => {
     const agent = ctx.container.registry.get("BUSINESS_ARCHITECT");
     assert.deepEqual(agent.permissions.external, []);
     assert.deepEqual(agent.permissions.write, ["blueprint"]);
+  });
+});
+
+describe("blueprint input", () => {
+  it("gives the agent the opportunity's experiments with method and success criteria, so the plan can align with them", async () => {
+    const opp = await makeOpportunity(ctx, analyst, { name: "Blueprint Sees Experiment" }, "APPROVED");
+    await as(ctx, analyst).post("/api/experiments").send({ opportunityId: opp.id, name: "Manual demand test", hypothesis: "SMEs pay", method: "Hand-made report to 5 SMEs", successCriteria: "3 pay", budget: 0 }).expect(201);
+    await generate(opp);
+    const call = ctx.provider.calls.filter((c) => c.label === "Business Architect").at(-1);
+    assert.match(call.prompt, /Hand-made report to 5 SMEs/);
+    assert.match(call.prompt, /3 pay/);
+    assert.match(call.prompt, /align the manual-first plan and validation gates with that experiment/);
   });
 });

@@ -141,7 +141,7 @@ function defaultResponse(label, prompt) {
           { tier: "Growth", price: 99, currency: "usd", unit: "per month", basis: "", evidenceType: "ESTIMATED" },
         ],
         mvpScope: { mustHave: ["Weekly report"], niceToHave: ["Alerts"], notNow: ["Mobile app"] },
-        manualFirstPlan: ["Compile prices for 10 suppliers by hand", "Send the report to 5 SMEs"],
+        manualFirstPlan: ["Compile prices for 10 suppliers by hand", "Send the report to 5 SMEs", "Run a small paid ad campaign to test interest", "Log responses: no reply, interested, commitment, payment"],
         launchChecklist: [
           { item: "Compile the first report", requiresHumanApproval: false },
           { item: "Run paid ads on social media", requiresHumanApproval: false },
