@@ -9,7 +9,8 @@ Written at the end of the first build session (PRs #1–#4), updated after the f
 | Backend API (auth, RBAC, opportunities, experiments, discovery, agents, dashboard, users, audit) | Done per the Database & API Spec, plus small additions (see README → *Deviations*) |
 | Agent framework + 5 agents + discovery/analysis orchestrator | Done; retries, timeouts, cancel, stale-task recovery, cost tracking |
 | Frontend (all spec pages + Users, Audit log) | Done; opportunity page shows evidence-quality counts under the title |
-| Tests | 132 backend, 20 frontend, 23 browser scenarios, all green (the browser suite passed locally for the first time with the landing-page work; it needs ports 3000-3002 free) |
+| Tests | 138 backend, 20 frontend, 24 browser scenarios, all green (the browser suite passed locally for the first time with the landing-page work; it needs ports 3000-3002 free) |
+| Business Architect (Blueprint Phase 4, first slice) | Sixth agent: drafts a business blueprint (positioning, offer, brand ideas, pricing hypotheses, MVP scope, manual-first plan, launch checklist, validation gates) for an *approved* opportunity; Blueprint tab on the opportunity page. Planning only: no product generation, deployment or brand/domain checks yet. **Not yet run against live OpenAI** (fake provider only), so expect prompt/schema tuning like the first agents needed |
 | Validation (first slice) | Public landing page per approved opportunity (`/p/:slug`) with consent-based lead capture, a *Landing page & leads* tab (publish = OWNER/ADMIN, leads = OWNER/ADMIN/ANALYST), lead status and deletion. Still no payments, analytics or CRM |
 | Dev tooling | `scripts/dev.mjs` (setup/start/test), Dockerfile + compose for the API. **Node ≥ 22 is required** (`openai@7`); `.nvmrc` is provided |
 

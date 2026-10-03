@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { getConfig } from "../config/env.js";
-import { Competitor, BusinessModel, Experiment, Opportunity, Source } from "../models/index.js";
+import { Blueprint, Competitor, BusinessModel, Experiment, Opportunity, Source } from "../models/index.js";
 import { canTransition, OPPORTUNITY_FLOW, sourcesFor } from "../models/stateMachine.js";
 import { AppError, conflict, invalidTransition, notFound } from "../utils/errors.js";
 import { buildSort, escapeRegex } from "../utils/pagination.js";
@@ -36,13 +36,14 @@ export async function getOpportunity(id) {
   const opp = await Opportunity.findOne({ _id: id, ...notDeleted });
   if (!opp) throw notFound("Opportunity");
   const evidenceSourceIds = opp.evidence.map((e) => e.sourceId).filter(Boolean);
-  const [competitors, businessModelDetail, experiments, sources] = await Promise.all([
+  const [competitors, businessModelDetail, experiments, sources, blueprint] = await Promise.all([
     Competitor.find({ opportunityId: opp._id }).sort({ name: 1 }),
     BusinessModel.findOne({ opportunityId: opp._id }),
     Experiment.find({ opportunityId: opp._id }).sort({ createdAt: -1 }),
     Source.find({ _id: { $in: [...opp.sourceIds, ...evidenceSourceIds] } }).select("-contentHash"),
+    Blueprint.findOne({ opportunityId: opp._id }),
   ]);
-  return { ...opp.toJSON(), competitors, businessModelDetail, experiments, sources };
+  return { ...opp.toJSON(), competitors, businessModelDetail, experiments, sources, blueprint };
 }
 
 export async function createOpportunity(input, req) {

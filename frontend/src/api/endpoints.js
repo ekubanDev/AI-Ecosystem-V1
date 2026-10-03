@@ -35,6 +35,7 @@ export const opportunities = {
   reject: (id, reason) => one(post(`/opportunities/${id}/reject`, { reason })),
   pause: (id, note) => one(post(`/opportunities/${id}/pause`, note ? { note } : {})),
   resume: (id) => one(post(`/opportunities/${id}/resume`)),
+  generateBlueprint: (id, key) => one(post(`/opportunities/${id}/blueprint`, undefined, { headers: idempotencyHeaders(key) })),
   updateLanding: (id, body) => one(put(`/opportunities/${id}/landing`, body)),
 };
 

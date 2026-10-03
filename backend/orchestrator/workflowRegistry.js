@@ -17,4 +17,5 @@ export const WRITE_KIND = {
   COMPETITOR: "competitors",
   BUSINESS_MODEL: "businessModel",
   OPPORTUNITY_ANALYST: "analysis",
+  BUSINESS_ARCHITECT: "blueprint",
 };

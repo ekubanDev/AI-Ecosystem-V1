@@ -11,13 +11,14 @@ import { RunDetailDialog, SourceLink, TaskRunsDialog, TaskTable } from "../compo
 import { ConfidenceChip, EvidenceQualityChips, EvidenceTypeChip, ExperimentStatusChip, OpportunityStatusChip } from "../components/chips.jsx";
 import { ActionDialog, Empty, ErrorAlert, Loading } from "../components/common.jsx";
 import { ExperimentDialog, ExperimentFormDialog } from "../components/experiments.jsx";
+import { BlueprintTab } from "../components/blueprint.jsx";
 import { LandingTab } from "../components/landing.jsx";
 import { describeActor, describeAuditEvent } from "../utils/audit.js";
 import { formatDate, formatMoney, humanize } from "../utils/format.js";
 import { AuditDetailDialog } from "./AuditPage.jsx";
 
-const TABS = ["overview", "evidence", "business-model", "competitors", "economics", "differentiation", "experiments", "landing", "agent-runs", "decision", "history"];
-const TAB_LABEL = { overview: "Overview", evidence: "Evidence", "business-model": "Business model", competitors: "Competitors", economics: "Economics", differentiation: "Differentiation", experiments: "Experiments", landing: "Landing page & leads", "agent-runs": "Agent runs", decision: "Decision", history: "History" };
+const TABS = ["overview", "evidence", "business-model", "competitors", "economics", "differentiation", "experiments", "landing", "blueprint", "agent-runs", "decision", "history"];
+const TAB_LABEL = { overview: "Overview", evidence: "Evidence", "business-model": "Business model", competitors: "Competitors", economics: "Economics", differentiation: "Differentiation", experiments: "Experiments", landing: "Landing page & leads", blueprint: "Blueprint", "agent-runs": "Agent runs", decision: "Decision", history: "History" };
 
 const KV = ({ label, children }) => (
   <Box><Typography variant="caption" sx={{ color: "text.secondary" }}>{label}</Typography><Typography variant="body2" component="div" sx={{ whiteSpace: "pre-wrap" }}>{children || "—"}</Typography></Box>
@@ -352,6 +353,7 @@ export default function OpportunityDetailsPage() {
       {tab === "differentiation" && <Differentiation o={o} />}
       {tab === "experiments" && <ExperimentsTab o={o} />}
       {tab === "landing" && <LandingTab o={o} />}
+      {tab === "blueprint" && <BlueprintTab o={o} />}
       {tab === "agent-runs" && <AgentRunsTab o={o} />}
       {tab === "decision" && <Decision o={o} act={act} />}
       {tab === "history" && can("audit:read") && <History o={o} />}
