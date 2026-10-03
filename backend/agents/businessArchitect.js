@@ -56,6 +56,9 @@ const outputSchema = z.object({
 // Blueprint §21: these always need a human decision, whatever the model says.
 const NEEDS_HUMAN = /\b(paid ads?|advertis\w*|ad spend|legal|contract|incorporat\w*|register(ed)? (the )?(business|company)|licen[sc]e\w*|regulat\w*|payment|payments|mobile money|momo|bank|refund|tax|spend|budget|hire|hiring|launch)\b/i;
 
+// Plan steps are prose, so "payment" alone (as in "log responses: no reply, interested, payment") must not trigger; only actions do.
+const NEEDS_HUMAN_STEP = /\b(paid ads?|advertis\w*|ad spend|legal|contract|incorporat\w*|licen[sc]e\w*|regulat\w*|(set up|collect|accept|process|take) (online )?payments?|payment (gateway|method|link|collection|processor)|mobile money|momo|bank account|spend|hire|hiring|launch)\b/i;
+
 const ROLE = "You are the Business Architect. You turn one approved opportunity into a practical business blueprint: positioning, offer, brand ideas, pricing hypotheses, MVP scope, a manual-first plan and a launch checklist. You are planning, not proving: nothing you write is evidence that the business will work.";
 
 export class BusinessArchitect extends BaseAgent {
@@ -74,7 +77,7 @@ export class BusinessArchitect extends BaseAgent {
       label: this.name, system: SYSTEM_PROMPT, schema: llmSchema, signal: ctx.signal,
       prompt: buildPrompt({
         role: ROLE,
-        objective: "Draft the blueprint. Start manual (Blueprint ladder: manual service → AI-assisted → productized → automated → SaaS): the manualFirstPlan should deliver value to the first customers without building software. Give 3 to 5 brand name ideas. Give pricing as hypotheses: a price needs a `basis` (for example a competitor price from the data below); if you have no basis, leave price null. validationGates are things that must be true before building software. Mark launchChecklist items that need the owner's decision (paid advertising, legal or regulatory steps, payments, spending, hiring) with requiresHumanApproval.",
+        objective: "Draft the blueprint. If an experiment is already planned or running (see `experiments`), align the manual-first plan and validation gates with that experiment's method and success criteria instead of inventing a different test or new target numbers. Start manual (Blueprint ladder: manual service → AI-assisted → productized → automated → SaaS): the manualFirstPlan should deliver value to the first customers without building software. Give 3 to 5 brand name ideas. Give pricing as hypotheses: a price needs a `basis` (for example a competitor price from the data below); if you have no basis, leave price null. validationGates are things that must be true before building software. Mark launchChecklist items that need the owner's decision (paid advertising, legal or regulatory steps, payments, spending, hiring) with requiresHumanApproval.",
         knownData: {
           opportunity: input.opportunity, businessModel: input.businessModel, analysis: input.analysis, competitors: input.competitors, experiments: input.experiments,
           evidence: input.evidence.slice(0, 80).map((e) => ({ claim: e.claim, evidenceType: e.evidenceType })),
@@ -114,6 +117,10 @@ export class BusinessArchitect extends BaseAgent {
       return { item: c.item, requiresHumanApproval: needs };
     });
     if (forced) assumptions.push(`${forced} checklist item(s) were flagged as needing your approval (spending, legal, payments or launch).`);
+    // The same rule applies to steps buried in the manual-first plan (live output put "run a paid ad campaign" there, outside the checklist).
+    for (const step of data.manualFirstPlan.filter((s) => NEEDS_HUMAN_STEP.test(s))) {
+      assumptions.push(`Needs your approval before it happens (spending, legal, payments or launch): "${step}"`);
+    }
 
     const sourced = input.evidence.filter((e) => SOURCED_EVIDENCE_TYPES.includes(e.evidenceType)).length;
     const completed = input.experiments.filter((e) => e.status === "COMPLETED").length;
