@@ -1,12 +1,13 @@
 import crypto from "node:crypto";
-import { AgentTask, BusinessModel, Competitor, DiscoveryRun, Opportunity, Source } from "../models/index.js";
+import { APPROVED_STATUSES } from "../models/constants.js";
+import { AgentTask, BusinessModel, Competitor, DiscoveryRun, Experiment, Opportunity, Source } from "../models/index.js";
 import { AppError, conflict, notFound } from "../utils/errors.js";
 import { AGENT_ACTOR, actorFromReq, audit } from "../services/auditService.js";
 import { transitionOpportunity } from "../services/opportunityService.js";
 import { createTask } from "../services/taskService.js";
 import { abortRegistry } from "./abortRegistry.js";
 import {
-  assertWritePermission, persistAnalysis, persistBusinessModel, persistCompetitors, persistResearch, persistScout,
+  assertWritePermission, persistAnalysis, persistBlueprint, persistBusinessModel, persistCompetitors, persistResearch, persistScout,
 } from "./persistence.js";
 import { ANALYSIS_CHAIN, WORKFLOWS, isChainAgent, nextInChain } from "./workflowRegistry.js";
 
@@ -50,6 +51,22 @@ export function createOrchestrator({ registry }) {
       default:
         throw new AppError("AGENT_ERROR", `No chain input for ${agentType}`);
     }
+  }
+
+  /** Everything the Business Architect may read, loaded fresh so a regenerated blueprint sees new evidence and experiment results. */
+  async function buildBlueprintInput(oppId) {
+    const opp = await Opportunity.findById(oppId);
+    if (!opp) throw notFound("Opportunity");
+    const [comps, bm, experiments] = await Promise.all([
+      Competitor.find({ opportunityId: oppId }).limit(20), BusinessModel.findOne({ opportunityId: oppId }), Experiment.find({ opportunityId: oppId }).sort({ createdAt: -1 }).limit(10),
+    ]);
+    return {
+      opportunityId: String(oppId), opportunity: snapshot(opp), evidence: evidenceList(opp),
+      businessModel: bm ? { ...bm.toObject(), _id: undefined, opportunityId: undefined } : null,
+      analysis: opp.analysis?.assessment ? { assessment: opp.analysis.assessment, risks: opp.risks, validationPlan: opp.validationPlan } : null,
+      competitors: comps.map((c) => ({ name: c.name, pricing: c.pricing, businessModel: c.businessModel, strengths: c.strengths, weaknesses: c.weaknesses })),
+      experiments: experiments.map((e) => ({ name: e.name, status: e.status, hypothesis: e.hypothesis, results: e.results, conclusion: e.conclusion })),
+    };
   }
 
   async function enqueueChainStep({ agentType, workflow, workflowId, oppId, requestedBy, extras }) {
@@ -100,6 +117,22 @@ export function createOrchestrator({ registry }) {
       const workflowId = crypto.randomUUID();
       await transitionOpportunity({ id: oppId, to: "RESEARCHING", from: "DISCOVERED", soft: true, actor: actorFromReq(req), req });
       const task = await enqueueChainStep({ agentType: "RESEARCH", workflow: WORKFLOWS.ANALYSIS, workflowId, oppId, requestedBy: req.user.id });
+      return { workflowId, taskId: task._id };
+    },
+
+    /** Drafts the business blueprint. Only for opportunities a human has approved: the agent never plans a business nobody said yes to. */
+    async startBlueprint(oppId, req) {
+      const opp = await Opportunity.findOne({ _id: oppId, isDeleted: { $ne: true } }).select("status");
+      if (!opp) throw notFound("Opportunity");
+      if (!APPROVED_STATUSES.includes(opp.status)) {
+        throw new AppError("INVALID_STATE_TRANSITION", `A blueprint can only be drafted for an approved opportunity (this one is ${opp.status}).`);
+      }
+      if (await AgentTask.exists({ opportunityId: oppId, agentType: "BUSINESS_ARCHITECT", status: { $in: ACTIVE_TASK } })) throw conflict("A blueprint is already being drafted for this opportunity.");
+      const workflowId = crypto.randomUUID();
+      const task = await createTask({
+        agentType: "BUSINESS_ARCHITECT", workflow: WORKFLOWS.MANUAL, workflowId, objective: registry.get("BUSINESS_ARCHITECT").objective,
+        input: await buildBlueprintInput(oppId), requestedBy: req.user.id, opportunityId: oppId, req,
+      });
       return { workflowId, taskId: task._id };
     },
 
@@ -159,6 +192,10 @@ export function createOrchestrator({ registry }) {
       }
 
       const oppId = task.opportunityId;
+      if (task.agentType === "BUSINESS_ARCHITECT") {
+        if (oppId && (await oppIsLive(oppId))) await persistBlueprint(oppId, output); // paused/rejected/deleted meanwhile: discard
+        return;
+      }
       if (!isChainAgent(task.agentType) || !oppId) return;
 
       if (task.workflow !== WORKFLOWS.MANUAL && !(await oppIsLive(oppId))) {

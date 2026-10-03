@@ -26,7 +26,7 @@ export const OPPORTUNITY_STATUSES = [
 
 export const EXPERIMENT_STATUSES = ["DRAFT", "READY", "RUNNING", "COMPLETED", "CANCELLED"];
 
-export const AGENT_TYPES = ["OPPORTUNITY_SCOUT", "RESEARCH", "COMPETITOR", "BUSINESS_MODEL", "OPPORTUNITY_ANALYST"];
+export const AGENT_TYPES = ["OPPORTUNITY_SCOUT", "RESEARCH", "COMPETITOR", "BUSINESS_MODEL", "OPPORTUNITY_ANALYST", "BUSINESS_ARCHITECT"];
 export const TASK_STATUSES = ["QUEUED", "RUNNING", "COMPLETED", "FAILED", "CANCELLED", "RETRYING", "WAITING_REVIEW"];
 /** Task states from which no further automatic progress happens. */
 export const TERMINAL_TASK_STATUSES = ["COMPLETED", "FAILED", "CANCELLED", "WAITING_REVIEW"];
@@ -48,5 +48,7 @@ export const AUDIT_ACTIONS = [
 ];
 
 export const LEAD_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "NOT_INTERESTED"];
-/** Opportunity states in which a public landing page may be live (never PAUSED/REJECTED/pre-approval). */
-export const LANDING_STATUSES = ["APPROVED", "EXPERIMENT", "BUILDING", "LAUNCHED", "SCALING"];
+/** Approved and onward: where a human has said yes (never PAUSED/REJECTED/pre-approval). */
+export const APPROVED_STATUSES = ["APPROVED", "EXPERIMENT", "BUILDING", "LAUNCHED", "SCALING"];
+/** A public landing page, or a business blueprint, only makes sense from these states. */
+export const LANDING_STATUSES = APPROVED_STATUSES;

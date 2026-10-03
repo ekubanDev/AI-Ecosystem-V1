@@ -1,4 +1,4 @@
-import { BusinessModel, Competitor, Opportunity, Source } from "../models/index.js";
+import { Blueprint, BusinessModel, Competitor, Opportunity, Source } from "../models/index.js";
 import { AppError } from "../utils/errors.js";
 import { nameKey, slugify } from "../utils/text.js";
 import { AGENT_ACTOR, audit } from "../services/auditService.js";
@@ -157,5 +157,14 @@ export async function persistAnalysis(oppId, output) {
         hypotheses: { $each: a.hypotheses.filter((s) => !existing.has(s)).map((statement) => ({ statement, status: "UNTESTED" })) },
       },
     }
+  );
+}
+
+/** Replaces the opportunity's blueprint with a fresh draft (one per opportunity; `version` counts regenerations). */
+export async function persistBlueprint(oppId, output) {
+  await Blueprint.findOneAndUpdate(
+    { opportunityId: oppId },
+    { $set: { ...output.blueprint, assumptions: output.assumptions, uncertainties: output.uncertainties, confidence: output.confidence, generatedByAgent: "BUSINESS_ARCHITECT" }, $inc: { version: 1 } },
+    { upsert: true, returnDocument: "after" }
   );
 }

@@ -10,10 +10,11 @@ import { DiscoveryRun } from "./DiscoveryRun.js";
 import { AuditEvent } from "./AuditEvent.js";
 import { IdempotencyKey } from "./IdempotencyKey.js";
 import { Lead } from "./Lead.js";
+import { Blueprint } from "./Blueprint.js";
 
 export {
-  User, Opportunity, Source, BusinessModel, Competitor, Experiment, AgentTask, AgentRun, DiscoveryRun, AuditEvent, IdempotencyKey, Lead,
+  User, Opportunity, Source, BusinessModel, Competitor, Experiment, AgentTask, AgentRun, DiscoveryRun, AuditEvent, IdempotencyKey, Lead, Blueprint,
 };
 export const allModels = [
-  User, Opportunity, Source, BusinessModel, Competitor, Experiment, AgentTask, AgentRun, DiscoveryRun, AuditEvent, IdempotencyKey, Lead,
+  User, Opportunity, Source, BusinessModel, Competitor, Experiment, AgentTask, AgentRun, DiscoveryRun, AuditEvent, IdempotencyKey, Lead, Blueprint,
 ];

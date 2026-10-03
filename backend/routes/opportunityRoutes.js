@@ -16,6 +16,7 @@ r.get("/:id", requireCapability("opportunities:read"), validate({ params: idPara
 r.patch("/:id", requireCapability("opportunities:write"), validate({ params: idParam, body: v.updateOpportunity }), c.update);
 r.delete("/:id", requireCapability("opportunities:write"), validate({ params: idParam }), c.remove);
 r.post("/:id/analyze", requireCapability("agents:run"), validate({ params: idParam }), idempotent, c.analyze);
+r.post("/:id/blueprint", requireCapability("agents:run"), validate({ params: idParam }), idempotent, c.blueprint);
 r.post("/:id/approve", requireCapability("opportunities:approve"), validate({ params: idParam, body: v.decisionBody }), c.approve);
 r.post("/:id/reject", requireCapability("opportunities:approve"), validate({ params: idParam, body: v.rejectBody }), c.reject);
 r.post("/:id/pause", requireCapability("opportunities:approve"), validate({ params: idParam, body: v.decisionBody }), c.pause);

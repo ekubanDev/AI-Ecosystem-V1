@@ -29,9 +29,9 @@ beforeEach(async () => {
 });
 
 describe("agent API", () => {
-  it("lists the five agents with their permissions and input schemas", async () => {
+  it("lists the six agents with their permissions and input schemas", async () => {
     const res = await as(ctx, analyst).get("/api/agents").expect(200);
-    assert.deepEqual(res.body.data.map((a) => a.agentType).sort(), ["BUSINESS_MODEL", "COMPETITOR", "OPPORTUNITY_ANALYST", "OPPORTUNITY_SCOUT", "RESEARCH"]);
+    assert.deepEqual(res.body.data.map((a) => a.agentType).sort(), ["BUSINESS_ARCHITECT", "BUSINESS_MODEL", "COMPETITOR", "OPPORTUNITY_ANALYST", "OPPORTUNITY_SCOUT", "RESEARCH"]);
     const bm = res.body.data.find((a) => a.agentType === "BUSINESS_MODEL");
     assert.deepEqual(bm.permissions.external, []);
     assert.ok(bm.inputSchema.properties.opportunityId);

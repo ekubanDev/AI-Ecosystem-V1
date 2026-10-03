@@ -11,7 +11,7 @@ import { TaskStatusChip } from "../components/chips.jsx";
 import { ActionDialog, Empty, ErrorAlert, JsonBlock, Loading, PageHeader, ServerPagination } from "../components/common.jsx";
 import { formatCost, formatDate, formatDuration, humanize } from "../utils/format.js";
 
-const AGENT_TYPES = ["OPPORTUNITY_SCOUT", "RESEARCH", "COMPETITOR", "BUSINESS_MODEL", "OPPORTUNITY_ANALYST"];
+const AGENT_TYPES = ["OPPORTUNITY_SCOUT", "RESEARCH", "COMPETITOR", "BUSINESS_MODEL", "OPPORTUNITY_ANALYST", "BUSINESS_ARCHITECT"];
 const RUN_STATUSES = ["STARTED", "COMPLETED", "FAILED", "CANCELLED"];
 const TASK_STATUSES = ["QUEUED", "RUNNING", "COMPLETED", "FAILED", "CANCELLED", "RETRYING", "WAITING_REVIEW"];
 

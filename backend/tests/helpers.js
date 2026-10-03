@@ -131,6 +131,26 @@ function defaultResponse(label, prompt) {
         },
         uncertainties: [], assumptions: [],
       };
+    case "Business Architect":
+      return {
+        positioning: "Supplier price intelligence for Ghanaian SME distributors, starting as a hand-made weekly report.",
+        brandOptions: Array.from({ length: 8 }, (_, i) => ({ name: `Brand idea ${i + 1}`, rationale: "Short and memorable" })),
+        offer: { whatYouSell: "A weekly supplier price report", howDelivered: "Emailed PDF compiled by hand" },
+        pricingHypotheses: [
+          { tier: "Starter", price: 10, currency: "usd", unit: "per month", basis: "Competitor Acme Procure starts at $10/mo", evidenceType: "VERIFIED" },
+          { tier: "Growth", price: 99, currency: "usd", unit: "per month", basis: "", evidenceType: "ESTIMATED" },
+        ],
+        mvpScope: { mustHave: ["Weekly report"], niceToHave: ["Alerts"], notNow: ["Mobile app"] },
+        manualFirstPlan: ["Compile prices for 10 suppliers by hand", "Send the report to 5 SMEs"],
+        launchChecklist: [
+          { item: "Compile the first report", requiresHumanApproval: false },
+          { item: "Run paid ads on social media", requiresHumanApproval: false },
+          { item: "Register the business name", requiresHumanApproval: false },
+        ],
+        validationGates: ["3 SMEs pay for the report"], localizationNotes: ["Price in GHS; mobile money is common: verify"],
+        risksAndMitigations: [{ risk: "Suppliers will not share prices", mitigation: "Use public price lists first" }],
+        assumptions: ["SMEs read email reports"], uncertainties: [], confidence: "HIGH",
+      };
     default:
       return {};
   }

@@ -234,6 +234,19 @@ await step("landing page: publish → visitor registers interest → lead appear
   await a.getByRole("dialog").getByRole("button", { name: "Delete permanently" }).click();
   await a.getByText("No leads yet.").waitFor();
 });
+await step("blueprint: draft for an approved opportunity, plan is labelled as hypotheses", async () => {
+  await a.goto(`${BASE}/opportunities`);
+  await a.getByRole("link", { name: "Procure Pilot" }).first().click();
+  await a.getByRole("tab", { name: "Blueprint" }).click();
+  await a.getByText(/not evidence that the business will work/).waitFor();
+  await a.getByRole("button", { name: "Draft blueprint" }).click();
+  await a.getByRole("heading", { name: "Positioning" }).waitFor();
+  await a.getByText(/Ideas only/).waitFor();
+  await a.getByText("Needs your approval").first().waitFor(); // paid ads / legal steps are always the owner's call
+  await a.getByText(/No validation experiment has been completed|No basis stated/).first().waitFor();
+  await a.getByRole("button", { name: "Regenerate blueprint" }).waitFor();
+  await shot(a, "16-blueprint");
+});
 await step("users page: admin sees users, cannot edit owners/admins/self", async () => {
   await a.goto(`${BASE}/users`);
   await a.getByRole("heading", { name: "Users" }).waitFor();

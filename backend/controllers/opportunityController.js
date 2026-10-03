@@ -16,6 +16,10 @@ export const approve = async (req, res) => ok(res, await svc.approveOpportunity(
 export const reject = async (req, res) => ok(res, await svc.rejectOpportunity(req.valid.params.id, req.valid.body, req));
 export const pause = async (req, res) => ok(res, await svc.pauseOpportunity(req.valid.params.id, req.valid.body, req));
 export const resume = async (req, res) => ok(res, await svc.resumeOpportunity(req.valid.params.id, req));
+export const blueprint = async (req, res) => {
+  const { workflowId, taskId } = await req.app.locals.container.orchestrator.startBlueprint(req.valid.params.id, req);
+  return ok(res, { workflowId, taskId, status: "QUEUED" }, { status: 202 });
+};
 export const analyze = async (req, res) => {
   const { workflowId, taskId } = await req.app.locals.container.orchestrator.startAnalysis(req.valid.params.id, req);
   return ok(res, { workflowId, taskId, status: "QUEUED" }, { status: 202 });
