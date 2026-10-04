@@ -211,3 +211,28 @@ describe("landing analytics", () => {
     await request(app).post("/v").expect(429);
   });
 });
+
+describe("privacy", () => {
+  it("never stores a visitor's IP address or browser in the audit trail when they submit the form", async () => {
+    await anon().post(`${page(opp.slug)}/leads`).send(form({ email: "private@example.com", name: "Private Person" })).set("User-Agent", "SecretBrowser/9.9").expect(201);
+    const lead = await models.Lead.findOne({ email: "private@example.com" });
+    const ev = await models.AuditEvent.findOne({ action: "LEAD_CAPTURED", resourceId: lead._id }).lean();
+    assert.ok(ev.requestId, "the request id is kept for debugging");
+    assert.equal(ev.ipAddress, undefined);
+    assert.equal(ev.userAgent, undefined);
+    assert.doesNotMatch(JSON.stringify(ev), /SecretBrowser|127\.0\.0\.1|::1/);
+  });
+
+  it("publishes who is responsible for the data on a public endpoint", async () => {
+    assert.deepEqual((await anon().get("/api/public/privacy").expect(200)).body.data, { operatorName: "Test Operator Ltd", contactEmail: "privacy@test.example", configured: true });
+  });
+
+  it("in production, refuses to publish a page until the operator is named (and is relaxed in development)", async () => {
+    const { assertCanPublish, privacyContact } = await import("../services/landingService.js");
+    assert.throws(() => assertCanPublish({ isProd: true }), (e) => e.code === "RESOURCE_CONFLICT" && /PRIVACY_OPERATOR_NAME/.test(e.message));
+    assert.throws(() => assertCanPublish({ isProd: true, PRIVACY_OPERATOR_NAME: "Acme Ltd" }), (e) => e.code === "RESOURCE_CONFLICT", "both name and email are needed");
+    assert.doesNotThrow(() => assertCanPublish({ isProd: true, PRIVACY_OPERATOR_NAME: "Acme Ltd", PRIVACY_CONTACT_EMAIL: "privacy@acme.test" }));
+    assert.doesNotThrow(() => assertCanPublish({ isProd: false }));
+    assert.equal(privacyContact({}).configured, false);
+  });
+});

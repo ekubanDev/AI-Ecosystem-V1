@@ -49,6 +49,7 @@ export const leads = {
 
 // Unauthenticated: what a visitor to a published landing page uses.
 export const publicPages = {
+  privacy: () => one(get("/public/privacy")),
   get: (slug) => one(get(`/public/landing/${slug}`)),
   submitLead: (slug, body) => one(post(`/public/landing/${slug}/leads`, body)),
   recordView: (slug, body) => one(post(`/public/landing/${slug}/view`, body ?? {})),

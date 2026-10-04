@@ -24,6 +24,9 @@ const schema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
+  // Who is responsible for visitors' personal data. Shown on the public privacy notice; required to publish a page in production.
+  PRIVACY_OPERATOR_NAME: z.string().trim().max(200).optional(),
+  PRIVACY_CONTACT_EMAIL: z.string().trim().email().optional().or(z.literal("").transform(() => undefined)),
   REGISTRATION_ENABLED: bool(true), // false closes public sign-up (production): accounts are then created with the seed script
   COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).default("lax"),
 

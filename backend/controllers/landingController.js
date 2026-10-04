@@ -12,3 +12,4 @@ export const updateLead = async (req, res) => ok(res, await svc.updateLead(req.v
 export const deleteLead = async (req, res) => ok(res, await svc.deleteLead(req.valid.params.id, req));
 export const recordView = async (req, res) => ok(res, await svc.recordView(req.valid.params.slug, req.valid.body), { status: 202 });
 export const stats = async (req, res) => ok(res, await svc.getLandingStats(req.valid.params.id));
+export const privacy = async (_req, res) => ok(res, await svc.getPrivacy());

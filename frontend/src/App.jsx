@@ -12,6 +12,7 @@ const DiscoveryPage = lazy(() => import("./pages/DiscoveryPage.jsx"));
 const ExperimentsPage = lazy(() => import("./pages/ExperimentsPage.jsx"));
 const OpportunitiesPage = lazy(() => import("./pages/OpportunitiesPage.jsx"));
 const OpportunityDetailsPage = lazy(() => import("./pages/OpportunityDetailsPage.jsx"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage.jsx"));
 const PublicLandingPage = lazy(() => import("./pages/PublicLandingPage.jsx"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage.jsx"));
 const UsersPage = lazy(() => import("./pages/UsersPage.jsx"));
@@ -40,6 +41,7 @@ export default function App() {
       <Route path="/forgot-password" element={<Public><ForgotPasswordPage /></Public>} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/privacy" element={<Suspense fallback={<Loading />}><PrivacyPage /></Suspense>} />
       <Route path="/p/:slug" element={<Suspense fallback={<Loading />}><PublicLandingPage /></Suspense>} />
       <Route element={<Protected><Suspense fallback={<Loading />}><AppLayout /></Suspense></Protected>}>
         <Route index element={<DashboardPage />} />

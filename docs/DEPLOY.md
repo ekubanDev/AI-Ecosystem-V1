@@ -4,7 +4,7 @@ This sets up the whole app on a single small Linux server with Docker Compose. N
 
 **What you get:** HTTPS with automatic certificates (Caddy), the web app and `/api` on one origin, the API, a separate task worker, MongoDB (not reachable from the internet), and a daily database dump.
 
-**What you do not get yet:** monitoring or alerts, off-server backups (a script is described below, but you must set it up), a privacy notice page in the app, zero-downtime deploys, or multiple servers.
+**What you do not get yet:** monitoring or alerts, off-server backups (a script is described below, but you must set it up), automatic deletion of old leads, zero-downtime deploys, or multiple servers.
 
 > **Status:** rehearsed locally on Docker Desktop (macOS, Docker 24, `APP_DOMAIN=localhost`): all images build, every service starts healthy, HTTPS and the HTTP→HTTPS redirect work, the app loads and logs in over HTTPS with `Secure; HttpOnly` cookies, registration is closed, the separate worker claims tasks, unique indexes are created, MongoDB is not published, and a backup restores correctly. **Not yet exercised on a real server:** public DNS, Let's Encrypt certificates for a real domain, and the firewall. Rehearse first (step 1), then deploy.
 
@@ -12,9 +12,9 @@ This sets up the whole app on a single small Linux server with Docker Compose. N
 
 A public page that collects names and emails is a legal and trust matter, not only a technical one. Decide these before you share a link:
 
-1. **Privacy notice.** The sign-up form has a consent checkbox and promises deletion on request, but the app has **no privacy page**. Write one (what you collect, why, how long you keep it, who to contact) and link it from the landing page. The consent wording is generated in `backend/services/landingService.js` (`consentTextFor`).
+1. **Privacy notice.** The app serves a plain-language notice at `/privacy` and links it beside the consent box. It describes what the system *actually* does today (what is collected, cookie-free view counts, no IP stored, no automatic deletion, the visitor's rights). It is a **template, not legal advice**: have it reviewed, and change it whenever the system changes (cookies, analytics, retention). Set `PRIVACY_OPERATOR_NAME` and `PRIVACY_CONTACT_EMAIL` in `backend/.env.production`: they name who is responsible, the config check requires them, and in production a landing page cannot be published without them. The consent wording itself is in `backend/services/landingService.js` (`consentTextFor`).
 2. **Registration with the regulator.** Ghana's Data Protection Act, 2012 (Act 843) generally expects organisations that process personal data to register with the Data Protection Commission. I am not a lawyer: confirm what applies to you before collecting data from real people.
-3. **Deleting data on request.** The Leads tab has a delete button that really removes a person's details. Decide who answers deletion requests and how quickly.
+3. **Deleting data on request.** The Leads tab has a delete button that really removes a person's details, and the notice tells visitors to email the contact address. Decide who answers those emails and how quickly. Nothing deletes leads automatically, and the notice says so: if you want a retention period, that needs building first.
 4. **Say only what is true.** The page copy is yours. Do not promise listings, verification or prices you cannot deliver yet.
 
 ## 1. Rehearse locally (free, 10 minutes)
@@ -64,7 +64,7 @@ Fill them in (generate secrets on the server, never reuse the development ones):
 | Where | Value |
 |---|---|
 | `docker/.env` | `APP_DOMAIN=app.yourdomain.com`, `MONGO_PASSWORD=$(openssl rand -hex 24)` |
-| `backend/.env.production` | `CLIENT_URL=https://app.yourdomain.com` (exactly), two different `JWT_*` secrets, your OpenAI / search / Gmail keys, correct `AI_PRICE_*` (dollars per **million** tokens) |
+| `backend/.env.production` | `CLIENT_URL=https://app.yourdomain.com` (exactly), `PRIVACY_OPERATOR_NAME` and `PRIVACY_CONTACT_EMAIL` (a real mailbox), two different `JWT_*` secrets, your OpenAI / search / Gmail keys, correct `AI_PRICE_*` (dollars per **million** tokens) |
 
 Then run the checker. It refuses to continue on the mistakes that fail quietly in production (indexes left off, proxy setting, wrong `CLIENT_URL`, weak secrets, open registration, per-token AI prices):
 

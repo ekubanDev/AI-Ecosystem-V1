@@ -38,6 +38,10 @@ export function checkProdConfig({ compose = {}, backend = {} }) {
   if (!/^(true|[1-9]\d*)$/.test(backend.TRUST_PROXY ?? "")) err("backend: TRUST_PROXY must be 1 behind Caddy, otherwise rate limits see one shared proxy IP and throttle everyone together.");
   if (backend.MONGO_AUTO_INDEX !== "true") err("backend: MONGO_AUTO_INDEX must be true. Production defaults it off, which silently drops the unique indexes (slugs, one lead per email).");
   if (backend.REGISTRATION_ENABLED !== "false") err("backend: REGISTRATION_ENABLED must be false in production, or anyone can create an account and read your research. Create the owner with the seed script instead.");
+  const op = backend.PRIVACY_OPERATOR_NAME ?? "";
+  const pe = backend.PRIVACY_CONTACT_EMAIL ?? "";
+  if (!op || PLACEHOLDER.test(op)) err("backend: PRIVACY_OPERATOR_NAME is missing or a placeholder. The public privacy notice must name who is responsible for visitors' details.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pe) || /example\.(com|org|net)$/i.test(pe)) err("backend: PRIVACY_CONTACT_EMAIL is missing, invalid or a placeholder. Visitors need a real address to ask for their data to be deleted.");
   if (backend.RATE_LIMIT_ENABLED === "false") err("backend: RATE_LIMIT_ENABLED=false removes the protection on login and on the public lead form.");
   if (domain && backend.CLIENT_URL !== `https://${domain}`) err(`backend: CLIENT_URL must be exactly https://${domain} (CORS, the refresh-cookie Origin check and email links all use it).`);
   const a = backend.JWT_ACCESS_SECRET ?? "";

@@ -6,7 +6,7 @@ const good = {
   compose: { APP_DOMAIN: "app.mybusiness.com", MONGO_PASSWORD: "a".repeat(8) + "0123456789abcdef0123456789abcdef" },
   backend: {
     NODE_ENV: "production", TRUST_PROXY: "1", MONGO_AUTO_INDEX: "true", CLIENT_URL: "https://app.mybusiness.com", COOKIE_SAMESITE: "lax",
-    JWT_ACCESS_SECRET: "f".repeat(64), JWT_REFRESH_SECRET: "e".repeat(64), RATE_LIMIT_ENABLED: "true", REGISTRATION_ENABLED: "false",
+    JWT_ACCESS_SECRET: "f".repeat(64), JWT_REFRESH_SECRET: "e".repeat(64), RATE_LIMIT_ENABLED: "true", REGISTRATION_ENABLED: "false", PRIVACY_OPERATOR_NAME: "My Business Ltd", PRIVACY_CONTACT_EMAIL: "privacy@mybusiness.com",
     OPENAI_API_KEY: "k", SEARCH_PROVIDER: "tavily", SEARCH_API_KEY: "k", GMAIL_USER: "a@b.co", GMAIL_APP_PASSWORD: "p", EMAIL_FROM: "X <no-reply@mybusiness.com>",
     AI_PRICE_INPUT_PER_MTOK: "0.4", AI_PRICE_OUTPUT_PER_MTOK: "1.6",
   },
@@ -38,6 +38,14 @@ describe("production config check", () => {
     assert.ok(has(checkProdConfig(withBackend({ RATE_LIMIT_ENABLED: "false" })), /RATE_LIMIT_ENABLED/));
     assert.ok(has(checkProdConfig(withBackend({ REGISTRATION_ENABLED: "true" })), /REGISTRATION_ENABLED must be false/));
     assert.ok(has(checkProdConfig(withBackend({ REGISTRATION_ENABLED: undefined })), /REGISTRATION_ENABLED must be false/));
+  });
+
+  it("requires a real responsible party and contact address for the privacy notice", () => {
+    assert.ok(has(checkProdConfig(withBackend({ PRIVACY_OPERATOR_NAME: "" })), /PRIVACY_OPERATOR_NAME/));
+    assert.ok(has(checkProdConfig(withBackend({ PRIVACY_OPERATOR_NAME: "Your business name" })), /PRIVACY_OPERATOR_NAME/));
+    assert.ok(has(checkProdConfig(withBackend({ PRIVACY_CONTACT_EMAIL: "" })), /PRIVACY_CONTACT_EMAIL/));
+    assert.ok(has(checkProdConfig(withBackend({ PRIVACY_CONTACT_EMAIL: "privacy@example.com" })), /PRIVACY_CONTACT_EMAIL/));
+    assert.ok(has(checkProdConfig(withBackend({ PRIVACY_CONTACT_EMAIL: "not an email" })), /PRIVACY_CONTACT_EMAIL/));
   });
 
   it("requires CLIENT_URL to match the domain exactly, over https", () => {
