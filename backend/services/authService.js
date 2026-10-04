@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { getConfig } from "../config/env.js";
 import { User } from "../models/index.js";
-import { AppError, conflict } from "../utils/errors.js";
+import { AppError, conflict, forbidden } from "../utils/errors.js";
 import { randomToken, sha256 } from "../utils/text.js";
 import { logger } from "../utils/logger.js";
 import { audit } from "./auditService.js";
@@ -64,6 +64,7 @@ export function createAuthService({ emailService }) {
 
   return {
     async register({ name, email, password }, req) {
+      if (!getConfig().REGISTRATION_ENABLED) throw forbidden("Registration is closed.");
       if (await User.exists({ email })) throw conflict("An account with this email already exists.");
       const passwordHash = await bcrypt.hash(password, getConfig().BCRYPT_ROUNDS);
       // Bootstrap: the very first account becomes OWNER; everyone else starts as VIEWER until an OWNER/ADMIN promotes them.

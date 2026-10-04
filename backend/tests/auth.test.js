@@ -192,3 +192,9 @@ describe("user administration", () => {
     assert.equal(res.body.error.code, "TOKEN_INVALID");
   });
 });
+
+describe("public config", () => {
+  it("reports that registration is open by default", async () => {
+    assert.deepEqual((await ctx.http.get("/api/auth/config").expect(200)).body.data, { registrationEnabled: true });
+  });
+});

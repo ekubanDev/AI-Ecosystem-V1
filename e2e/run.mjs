@@ -217,6 +217,12 @@ await step("landing page: publish → visitor registers interest → lead appear
   await v.goto(`${BASE}/p/procure-pilot`);
   await v.getByRole("heading", { name: "Find reliable suppliers in Ghana" }).waitFor();
   await v.getByText("Verified profiles").waitFor();
+  const [notice] = await Promise.all([visitorCtx.waitForEvent("page"), v.getByRole("link", { name: "Read the privacy notice" }).click()]);
+  await notice.getByRole("heading", { name: "Privacy notice" }).waitFor();
+  await notice.getByText(/Test Operator Ltd/).first().waitFor(); // the responsible party from the server config
+  await notice.getByText(/Until you ask us to delete it/).waitFor(); // honest about retention
+  await shot(notice, "18-privacy-notice");
+  await notice.close();
   await v.getByLabel(/^Name/).fill("Visitor Vera");
   await v.getByLabel(/^Email/).fill("vera@example.com");
   await v.getByRole("button", { name: "Register my interest" }).click();

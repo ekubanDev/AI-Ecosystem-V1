@@ -2,7 +2,7 @@ import { Alert, Button, Chip, FormControlLabel, IconButton, MenuItem, Select, St
 import { Delete } from "@mui/icons-material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { leads as leadsApi, opportunities as oppApi } from "../api/endpoints.js";
+import { leads as leadsApi, opportunities as oppApi, publicPages } from "../api/endpoints.js";
 import { conversionLabel, lowSample } from "../utils/landingStats.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { ActionDialog, Empty, ErrorAlert, Loading, ServerPagination } from "./common.jsx";
@@ -23,6 +23,7 @@ function Editor({ o }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const url = `${window.location.origin}/p/${o.slug}`;
   const eligible = LANDING_STATUSES.includes(o.status);
+  const privacy = useQuery({ queryKey: ["privacy-contact"], queryFn: publicPages.privacy, staleTime: 5 * 60 * 1000 });
 
   return (
     <Stack spacing={2} sx={{ mb: 4, maxWidth: 640 }}>
@@ -30,6 +31,14 @@ function Editor({ o }) {
         Publishing makes this page visible to anyone with the link, and it collects personal data (name, email and what visitors choose to add).
         Visitors must tick a consent box, and you can delete any lead on request. Check the wording before you publish: say only what you can deliver.
       </Alert>
+      {privacy.data && !privacy.data.configured && (
+        <Alert severity="warning">
+          The privacy notice has no responsible party yet. Set PRIVACY_OPERATOR_NAME and PRIVACY_CONTACT_EMAIL on the server: in production a page cannot be published until they are set, and visitors are shown an incomplete notice until then.
+        </Alert>
+      )}
+      {privacy.data?.configured && (
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>The privacy notice at <a href="/privacy" target="_blank" rel="noreferrer">/privacy</a> names {privacy.data.operatorName} ({privacy.data.contactEmail}) as responsible for visitors' details.</Typography>
+      )}
       <TextField label="Headline" required={form.enabled} value={form.headline} onChange={set("headline")} slotProps={{ htmlInput: { maxLength: 120 } }} fullWidth />
       <TextField label="Sub-headline" value={form.subheadline} onChange={set("subheadline")} slotProps={{ htmlInput: { maxLength: 300 } }} fullWidth />
       <TextField label="Bullet points (one per line, up to 6)" value={form.bullets} onChange={set("bullets")} multiline minRows={3} fullWidth />

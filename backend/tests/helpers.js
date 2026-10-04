@@ -18,6 +18,8 @@ Object.assign(process.env, {
   SEARCH_MODE: process.env.TEST_SEARCH_MODE ?? "text",
   CLIENT_URL: "http://localhost:3000",
   OPENAI_API_KEY: "",
+  PRIVACY_OPERATOR_NAME: "Test Operator Ltd",
+  PRIVACY_CONTACT_EMAIL: "privacy@test.example",
 });
 
 const { default: mongoose } = await import("mongoose");

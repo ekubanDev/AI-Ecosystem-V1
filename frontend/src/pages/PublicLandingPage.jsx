@@ -1,5 +1,5 @@
 import { CheckCircle } from "@mui/icons-material";
-import { Alert, Box, Button, Checkbox, Container, FormControlLabel, FormHelperText, List, ListItem, ListItemIcon, ListItemText, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, Container, FormControlLabel, FormHelperText, Link, List, ListItem, ListItemIcon, ListItemText, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
@@ -92,6 +92,7 @@ export default function PublicLandingPage() {
               </Box>
               <Box>
                 <FormControlLabel control={<Checkbox checked={values.consent} onChange={set("consent")} />} label={p.consentText} />
+                <Typography variant="body2" sx={{ ml: 4 }}><Link href="/privacy" target="_blank" rel="noreferrer">Read the privacy notice</Link></Typography>
                 {errors.consent && <FormHelperText error>{errors.consent}</FormHelperText>}
               </Box>
               <ErrorAlert error={submit.error} />

@@ -1,0 +1,93 @@
+# Production stack for ONE server: Caddy (HTTPS + frontend + /api proxy), API, a separate task worker, MongoDB and daily backups.
+# Nothing but Caddy is published to the internet (ports 80/443). See docs/DEPLOY.md for the full runbook.
+#
+#   cp docker/prod.env.example docker/.env                  # APP_DOMAIN, MONGO_PASSWORD
+#   cp backend/production.env.example backend/.env.production   # secrets and settings
+#   node scripts/check-prod.mjs                              # refuses to continue on a bad config
+#   docker compose -f docker/docker-compose.prod.yml up -d --build
+name: abf
+
+x-backend: &backend
+  build: ../backend
+  restart: unless-stopped
+  env_file: ../backend/.env.production
+  environment:
+    NODE_ENV: production
+    MONGODB_URI: mongodb://abf:${MONGO_PASSWORD:?set MONGO_PASSWORD in docker/.env}@mongo:27017/ai_business_factory?authSource=admin
+  depends_on:
+    mongo:
+      condition: service_healthy
+
+services:
+  caddy:
+    build: ../frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN in docker/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # certificates: keep this volume, or you hit certificate rate limits on rebuild
+      - caddy-config:/config
+    depends_on:
+      - backend
+
+  backend:
+    <<: *backend
+    environment:
+      NODE_ENV: production
+      RUN_WORKER: "false" # the worker runs as its own service below
+      MONGODB_URI: mongodb://abf:${MONGO_PASSWORD:?set MONGO_PASSWORD in docker/.env}@mongo:27017/ai_business_factory?authSource=admin
+    expose:
+      - "3001"
+
+  worker:
+    <<: *backend
+    command: ["node", "worker.js"]
+    healthcheck:
+      disable: true # the image's HTTP healthcheck is for the API; the worker serves no HTTP
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: abf
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in docker/.env}
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "-u", "abf", "-p", "${MONGO_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Daily dump, kept 14 days, on the same server. That protects against mistakes, NOT against losing the server:
+  # copy /backups off the machine (see docs/DEPLOY.md).
+  backup:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in docker/.env}
+    volumes:
+      - backups:/backups
+    depends_on:
+      mongo:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          f=/backups/abf-$$(date +%F).archive.gz
+          mongodump --uri="mongodb://abf:$$MONGO_PASSWORD@mongo:27017/?authSource=admin" --db=ai_business_factory --archive="$$f" --gzip && echo "backup written: $$f"
+          find /backups -name 'abf-*.archive.gz' -mtime +14 -delete
+          sleep 86400
+        done
+
+volumes:
+  mongo-data:
+  caddy-data:
+  caddy-config:
+  backups:

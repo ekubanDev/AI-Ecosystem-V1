@@ -1,6 +1,7 @@
 import { LANDING_STATUSES } from "../models/constants.js";
 import { LandingStat, Lead, Opportunity } from "../models/index.js";
-import { AppError, notFound } from "../utils/errors.js";
+import { getConfig } from "../config/env.js";
+import { AppError, conflict, notFound } from "../utils/errors.js";
 import { actorFromReq, audit } from "./auditService.js";
 
 /** What the person is agreeing to, derived server-side so the stored consent always matches what the page displayed. */
@@ -12,6 +13,22 @@ const publicOpportunity = async (slug) => {
   if (!opp) throw notFound("Page"); // same answer for missing, unpublished and paused pages: nothing leaks
   return opp;
 };
+
+/** Who answers for visitors' personal data. Both parts are needed for the notice to mean anything. */
+export const privacyContact = (config = getConfig()) => ({
+  operatorName: config.PRIVACY_OPERATOR_NAME ?? null,
+  contactEmail: config.PRIVACY_CONTACT_EMAIL ?? null,
+  configured: Boolean(config.PRIVACY_OPERATOR_NAME && config.PRIVACY_CONTACT_EMAIL),
+});
+
+/** In production a page that collects personal data may not go live without someone named as responsible for it. */
+export function assertCanPublish(config = getConfig()) {
+  if (config.isProd && !privacyContact(config).configured) {
+    throw conflict("Set PRIVACY_OPERATOR_NAME and PRIVACY_CONTACT_EMAIL before publishing a page that collects personal data.");
+  }
+}
+
+export const getPrivacy = async () => privacyContact();
 
 /** Public: only fields written for the public. Never the opportunity's research, evidence or analysis. */
 export async function getPublicLanding(slug) {
@@ -36,7 +53,7 @@ export async function submitLead(slug, body, req) {
   try {
     const lead = await Lead.create({ ...fields, opportunityId: opp._id, consent: { text: consentTextFor(opp.name), at: new Date() } });
     // No personal data in the audit trail: ids only.
-    await audit({ actor: { type: "SYSTEM" }, action: "LEAD_CAPTURED", resourceType: "Lead", resourceId: lead._id, metadata: { opportunityId: String(opp._id) }, req });
+    await audit({ actor: { type: "SYSTEM" }, action: "LEAD_CAPTURED", resourceType: "Lead", resourceId: lead._id, metadata: { opportunityId: String(opp._id) }, req: { id: req.id } }); // request id only: a visitor's IP address and browser must not be stored
   } catch (err) {
     if (err.code !== 11000) throw err;
   }
@@ -46,6 +63,7 @@ export async function submitLead(slug, body, req) {
 export async function updateLanding(opportunityId, input, req) {
   const opp = await Opportunity.findOne({ _id: opportunityId, isDeleted: { $ne: true } });
   if (!opp) throw notFound("Opportunity");
+  if (input.enabled) assertCanPublish();
   if (input.enabled && !LANDING_STATUSES.includes(opp.status)) {
     throw new AppError("INVALID_STATE_TRANSITION", `A landing page can only be published for an approved opportunity (this one is ${opp.status}).`);
   }

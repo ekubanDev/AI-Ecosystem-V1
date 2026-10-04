@@ -8,6 +8,7 @@ const list = async (url, params) => {
 const one = async (p) => (await p).data;
 
 export const auth = {
+  config: () => one(get("/auth/config")),
   login: (body) => one(post("/auth/login", body)),
   register: (body) => one(post("/auth/register", body)),
   logout: () => one(post("/auth/logout")),
@@ -48,6 +49,7 @@ export const leads = {
 
 // Unauthenticated: what a visitor to a published landing page uses.
 export const publicPages = {
+  privacy: () => one(get("/public/privacy")),
   get: (slug) => one(get(`/public/landing/${slug}`)),
   submitLead: (slug, body) => one(post(`/public/landing/${slug}/leads`, body)),
   recordView: (slug, body) => one(post(`/public/landing/${slug}/view`, body ?? {})),
