@@ -6,7 +6,7 @@ This sets up the whole app on a single small Linux server with Docker Compose. N
 
 **What you do not get yet:** monitoring or alerts, off-server backups (a script is described below, but you must set it up), a privacy notice page in the app, zero-downtime deploys, or multiple servers.
 
-> **Status:** the Compose file validates and the config checker is tested, but the images have **not been built or run end to end** (the machine this was written on had no running Docker). Do the local rehearsal in step 1 before spending money on a server.
+> **Status:** rehearsed locally on Docker Desktop (macOS, Docker 24, `APP_DOMAIN=localhost`): all images build, every service starts healthy, HTTPS and the HTTP→HTTPS redirect work, the app loads and logs in over HTTPS with `Secure; HttpOnly` cookies, registration is closed, the separate worker claims tasks, unique indexes are created, MongoDB is not published, and a backup restores correctly. **Not yet exercised on a real server:** public DNS, Let's Encrypt certificates for a real domain, and the firewall. Rehearse first (step 1), then deploy.
 
 ## 0. Before the app is public
 
@@ -35,7 +35,7 @@ docker compose -f docker/docker-compose.prod.yml up -d --build
 docker compose -f docker/docker-compose.prod.yml ps
 ```
 
-Open `https://localhost` (your browser warns about the certificate: Caddy made it for localhost; accept it for the rehearsal). Create the owner (step 6), log in, and try Discovery. Stop it with `docker compose -f docker/docker-compose.prod.yml down` (add `-v` to delete the rehearsal data).
+Docker Desktop must be running (`open -a Docker`). The first build takes a few minutes. Open `https://localhost` (your browser warns about the certificate: Caddy made it for localhost; accept it for the rehearsal; the `certutil` lines in Caddy's log are harmless). Create the owner (step 6), log in, and try Discovery. Stop it with `docker compose -f docker/docker-compose.prod.yml down` (add `-v` to delete the rehearsal data).
 
 If something in this file is wrong, this is where you find out.
 
@@ -110,7 +110,17 @@ docker run --rm -v abf_backups:/b -v "$HOME/backups:/out" alpine sh -c 'cp -n /b
 # then sync ~/backups to storage you control (rsync, rclone to S3/Drive, etc.)
 ```
 
-Restore, then **test a restore once** before you need it:
+The first backup is written at start-up, before there is any data, so it is only ~100 bytes: that is normal. Restore, then **test a restore once** before you need it. This safe version restores into a scratch database and compares counts, without touching live data:
+
+```bash
+set -a; . docker/.env; set +a
+docker compose -f docker/docker-compose.prod.yml exec -T mongo \
+  mongorestore -u abf -p "$MONGO_PASSWORD" --authenticationDatabase admin --gzip --archive=/dev/stdin \
+  --nsFrom 'ai_business_factory.*' --nsTo 'restore_test.*' < abf-2026-10-03.archive.gz
+# check counts in restore_test, then drop it:  db.getSiblingDB('restore_test').dropDatabase()
+```
+
+To actually restore over the live database (this **replaces** current data):
 
 ```bash
 set -a; . docker/.env; set +a        # loads MONGO_PASSWORD into this shell
